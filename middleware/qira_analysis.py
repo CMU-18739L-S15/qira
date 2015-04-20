@@ -505,6 +505,7 @@ def analyze(trace, program):
   #print loops
 
 def slice(trace, inclnum):
+  print "called slice({})".format(inclnum)
   def is_store(r):
     return r['type'] == "W" or r['type'] == "S"
   def is_load(r):
@@ -520,6 +521,7 @@ def slice(trace, inclnum):
 
   this_arch = trace.program.static['arch']
 
+  d = {}
   # so only things before this can affect it
   while clnum > max(0, inclnum-100):
     #never follow the stack
@@ -537,12 +539,15 @@ def slice(trace, inclnum):
     if len(overwrite) > 0:
       st = st.difference(overwrite)
       st = st.union(get_loads(clnum))
+      d[clnum] = st
       cls.append(clnum)
 
     clnum -= 1
 
   cls = set(cls)
   cls.discard(inclnum)
+  print d
+  print "returning {}".format(list(cls))
   return list(cls)
 
 if __name__ == "__main__":
