@@ -25,7 +25,6 @@ class Memory(dict):
     value = bytelist[0]
     for b in bytelist[1:]:
       value = value.concat(b)
-    print value
     return value
 
   def get_mem(self, addr, size, little_endian=True):
