@@ -543,11 +543,21 @@ def def_use(trace, inclnum):
 
   return d
 
-def slice(trace, clnum):
-  d = def_use(trace, clnum)
+def slice(trace, inclnum):
+  d = def_use(trace, inclnum)
   cls = set(d)
   cls.discard(inclnum)
   return list(cls)
+
+def get_source_bytes(trace, inclnum):
+  d = def_use(trace, inclnum)
+  return d
+
+def analyze_source_bytes(trace):
+  print "analyzing source bytes"
+  for (address, length, clnum, ins) in trace.flow:
+    print "{}: 0x{:x}".format(clnum, address)
+    print trace.program.static[address]['instruction']
 
 if __name__ == "__main__":
   # can run standalone for testing
