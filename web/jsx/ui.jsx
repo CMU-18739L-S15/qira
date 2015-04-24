@@ -3,9 +3,9 @@ var scripts = ["/client/controls.js", "/client/ida.js", "/client/idump.js", "/cl
                "/client/vtimeline.js", "/client/strace.js", "/client/haddrline.js",
                "/client/static/static.js", "/client/static/graph.js"];
 
-var Hello = React.createClass({displayName: "Hello",
+var Hello = React.createClass({
     render: function() {
-        return React.createElement("div", null, "yolo ", this.props.t);
+        return <div>Test</div>;
     }
 });
 
@@ -71,7 +71,7 @@ $(document).ready(function() {
             //UI elements now exist in the DOM.
             head.load(scripts);
 
-            React.render(React.createElement(Hello, {t: "asd"}), document.getElementById("sass"));
+            React.render(<Hello t="asd" />, document.getElementById("sass"));
         });
 
 });
