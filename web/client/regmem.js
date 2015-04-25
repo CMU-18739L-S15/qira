@@ -126,6 +126,7 @@ Deps.autorun(function() { DA("emit getregisters");
 
 function on_registers(msg) { DS("registers");
   current_regs = msg;
+  Session.set("registers", current_regs);
   redraw_reg_flags();
   var tsize = msg[0]['size'];
   if (tsize > 0) PTRSIZE = tsize;
