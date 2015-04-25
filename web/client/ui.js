@@ -3,12 +3,6 @@ var scripts = ["/client/controls.js", "/client/ida.js", "/client/idump.js", "/cl
                "/client/vtimeline.js", "/client/strace.js", "/client/haddrline.js",
                "/client/static/static.js", "/client/static/graph.js"];
 
-var Hello = React.createClass({displayName: "Hello",
-    render: function() {
-        return React.createElement("div", null, "Test");
-    }
-});
-
 
 $(document).ready(function() {
     var myDocker = new wcDocker(document.body, {"theme": "qira_theme", "themePath": ""});
@@ -44,7 +38,7 @@ $(document).ready(function() {
     myDocker.registerPanelType('Flat', {
         onCreate: function(myPanel, options) {
             //myPanel.layout().addItem($("<div class='fill' id='flat-static'></div>"));
-            myPanel.layout().addItem($("<div class='' id='sass'></div>"));
+            myPanel.layout().addItem($("<div class='fill' id='sass'></div>"));
             flatDef.resolve();
         },
     });

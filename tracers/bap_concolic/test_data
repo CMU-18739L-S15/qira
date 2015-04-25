@@ -3,7 +3,7 @@
  "regs": [],
   "mem": [(0xf6fff3ac, 32)],
   "constraints": {
-    "registers": {"EIP":0x80486ab},
+    "registers": {}, #{"EIP":0x80486ab},
     "memory": {}
   },
   "assist": {
