@@ -134,7 +134,7 @@ window.onkeydown = function(e) {
 
   // We need a better way to fix this issue.
   // As it currently stands you can not have input boxes.
-  if (e.srcElement.className === "ignore") return;
+  if ($(e.srcElement).hasClass("ignore")) return;
   if (e.ctrlKey == true) return;
   if (e.keyCode == 32) {
     // space bar
