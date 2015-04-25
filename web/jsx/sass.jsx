@@ -2,11 +2,11 @@ window.qira = window.qira || {};
 var qira = window.qira;
 var rb = window.ReactBootstrap;
 
-qira.determineAddressMapping = function(address) {
+qira.formatAddress = function(address) {
     var pmaps = Session.get("pmaps");
 
     if(pmaps === undefined) {
-        return undefined;
+        console.log("pmaps undefined");
     }
 
     var mapAddresses = _.keys(pmaps);
@@ -14,7 +14,7 @@ qira.determineAddressMapping = function(address) {
         return {label: addr, value: parseInt(addr)};
     }));
 
-    var type = undefined;
+    var type = "unknown";
     for(var i = 1; i < ranges.length; i++) {
         var mapAddress = ranges[i].value;
         if(mapAddress > parseInt(address)) {
@@ -24,32 +24,86 @@ qira.determineAddressMapping = function(address) {
             }
         }
     }
-    return type;
+
+    // Lookup table for type -> class names
+    if(type === "memory") type = "datamemory";
+    else if(type === "instruction") type = "insaddr";
+
+    return <span className = {type + " addr addr_" + address}>{address}</span>;
 };
+
+qira.sassAddConstraintModal = React.createClass({
+    mixins: [React.addons.LinkedStateMixin],
+    getInitialState: function() {
+        return {name: "", target: "", value:"", type:""};
+    },
+    getForms: function() {
+        if(this.state.type === "memory") {
+            return <div> 
+            <rb.Input type='text' className="ignore" label='Address' valueLink={this.linkState('address')}  placeholder=''/>
+            <rb.Input type='text' className="ignore" label='Value' valueLink={this.linkState('value')} placeholder=''/>
+            </div>
+        } else {
+            return <div> 
+            <rb.Input type='text' className="ignore" label='Value' valueLink={this.linkState('value')} placeholder=''/>
+            </div>
+        }
+    },
+    render: function() {
+        var registerOptions = Session.get("registers").map(function(register) {
+            return <option value={register.name}>{register.name}</option>;
+        });
+        
+        return <rb.Modal {...this.props} className="bs" bsStyle="primary" title="Add a constraint" animation={false}>
+        <div className="modal-body">
+        <form>
+        <rb.Input type='select' label='Constraint type' valueLink={this.linkState('type')}>
+        <option value='memory'>Memory</option>
+        {registerOptions}
+        </rb.Input>
+        {this.getForms()}
+        </form>
+        </div>
+        <div className='modal-footer'>
+        <rb.Button onClick={this.props.onRequestHide}>Close</rb.Button>
+        <rb.Button onClick={this.props.onSubmit}>Add</rb.Button>
+        </div>
+        </rb.Modal>;
+    }
+});
 
 qira.sassConstraintPanel = React.createClass({
     createConstraint: function(constraint) {
-        var deleteButton = <rb.Glyphicon glyph="remove" className="pull-right" onClick={this.props.onDelete.bind(this, constraint)}></rb.Glyphicon>;
+        var deleteButton = <i className="fa fa-remove pull-right" onClick={this.props.onDelete.bind(this, constraint)}></i>;
         var constraintType = constraint.type == "memory" ? this.createMemoryConstraint : this.createRegisterConstraint;
-        return (<rb.ListGroupItem>{constraintType(constraint)} {deleteButton}</rb.ListGroupItem>);
+        return (<rb.ListGroupItem className="fill">{deleteButton} {constraintType(constraint)}</rb.ListGroupItem>);
     },
     createMemoryConstraint: function(constraint) {
-        var link = <span className = {"datamemory addr addr_" + constraint.target}>{constraint.target}</span>;
-        return <div><rb.Label bsStyle="primary">MEM</rb.Label> {link}</div>;
+        var link = qira.formatAddress(constraint.target);
+        console.log(qira.formatAddress(constraint.target));
+        return <div><rb.Label bsStyle="primary">MEM</rb.Label> {link} <i className="fa fa-long-arrow-right"></i> {constraint.value} </div>;
     },
     createRegisterConstraint: function(constraint) {
         var link = <span className = "register">{constraint.target}</span>;
-        return <div><rb.Label bsStyle="info">REG</rb.Label> {link}</div>;
+        return <div><rb.Label bsStyle="info">REG</rb.Label> {link} <i className="fa fa-long-arrow-right"></i> {constraint.value}</div>;
     },
-    header: <div>
-          Constraints <rb.Button bsSize='small' className="align-right">
-            <b>+</b> Add
-          </rb.Button>
-        </div>,
+    header: function () {
+        var modal = <qira.sassAddConstraintModal container={this}/>;
+        return (<div>
+             Constraints
+                  <div className='modal-container'>
+                  <rb.ModalTrigger modal={modal} container={this}>
+                  <rb.Button bsSize='xsmall'><i className="fa fa-plus"></i></rb.Button>
+             </rb.ModalTrigger>
+      </div>
+                </div>);
+    },
+    onConstraintAdd: function(name, type, target, value) {
+    },
     render: function() {
         var constraintItems = this.props.constraints.map(this.createConstraint);
         return (<div className="bs">
-                <rb.Panel header={this.header}>
+                <rb.Panel header={this.header()}>
                 <ul className="list-group">
                 {constraintItems}
                 </ul>
@@ -61,8 +115,9 @@ qira.sassConstraintPanel = React.createClass({
 qira.sassApp = React.createClass({
     getInitialState: function() {
         return {
-            constraints: [{name: "test", type: "register", target: "RIP", value: "0x1337beef"},
-                          {name: "test", type: "memory", target: "0xffaabbcc", value: "0xcoffee"}]
+            constraints: [{name: "test1", type: "register", target: "RIP", value: "0x1337beef"},
+                          {name: "test2", type: "memory", target: "0x4005cc", value: "0xcoffee"},
+                          {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee"}]
         };
     },
     handleConstraintDelete: function(constraint) {

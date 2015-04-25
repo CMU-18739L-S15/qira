@@ -60,13 +60,13 @@ $(document).ready(function() {
     var flatPanel = myDocker.addPanel("Flat", wcDocker.DOCK.BOTTOM, cfgPanel, {h: 300});
     var memoryPanel = myDocker.addPanel("Memory", wcDocker.DOCK.BOTTOM, dynamicPanel, {h: 400});
 
+    var qira = window.qira;
+    React.render(<qira.sassApp />, document.getElementById("sass"));
+
     $.when(timelineDef, dynamicDef, cfgDef, flatDef, memoryDef)
         .done(function() {
             //UI elements now exist in the DOM.
             head.load(scripts);
-
-            var qira = window.qira;
-            React.render(<qira.sassApp />, document.getElementById("sass"));
         });
 
 });
