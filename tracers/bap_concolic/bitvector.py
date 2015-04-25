@@ -230,7 +230,7 @@ class ConcreteBitVector(BitVector):
 
   def concat(self, other):
     if isinstance(other, SymbolicBitVector):
-      return SymbolicBitVector(self.size + other.size, z3.BitVecVal(self.value, self.size).concat(other.expr))
+      return SymbolicBitVector(self.size + other.size, z3.Concat(z3.BitVecVal(self.value, self.size), other.expr))
     else:
       return ConcreteBitVector(self.size + other.size, (self.value << other.size) | other.value)
 
@@ -451,7 +451,7 @@ def z3ExprCast(size, expr):
   elif size == expr.size():
     return expr
   else:
-    return z3.Extract(size, 0, expr)
+    return z3.Extract(size-1, 0, expr)
 
 class SymbolicBitVector(BitVector):
 
@@ -522,13 +522,13 @@ class SymbolicBitVector(BitVector):
 
   def div(self, other):
     if isinstance(other, SymbolicBitVector):
-      expr = self.expr * other.expr
+      expr = self.expr / other.expr
       size = max(self.size, other.size)
     elif isinstance(other, ConcreteBitVector):
-      expr = self.expr * int(other)
+      expr = self.expr / int(other)
       size = max(self.size, other.size)
     else:
-      expr = self.expr * other
+      expr = self.expr / other
       size = self.size
     return SymbolicBitVector(size, expr)
 

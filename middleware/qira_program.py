@@ -394,7 +394,7 @@ class Trace:
         from concolic_executor import satisfy_constraints
         with open("tracers/bap_concolic/test_data","r") as f:
           data = eval(f.read())
-          print satisfy_constraints(self.program, data['start'], data['regs'], data['mem'], data['constraints'])
+          print satisfy_constraints(self.program, data['start'], data['regs'], data['mem'], data['constraints'], data['assist'])
 
         # hacky pin offset problem fix
         hpo = len(self.dmap)-(maxclnum-minclnum)

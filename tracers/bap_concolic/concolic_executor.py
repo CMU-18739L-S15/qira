@@ -9,8 +9,8 @@ from copy import copy
 import collections
 import z3
 
-def symbolic_conditional(cond):
-  return z3.If(cond, z3.BitVecVal(1,8), z3.BitVecVal(0, 8))
+def symbolic_conditional(cond, true=z3.BitVecVal(1,8), false=z3.BitVecVal(0, 8)):
+  return z3.If(cond, true, false)
 
 class Memory(dict):
   def __init__(self, fetch_mem, initial=None):
@@ -99,8 +99,23 @@ class ConcolicExecutor(adt.Visitor):
     self.state = state
     self.pc = pc
     self.constraints = constraints
-    self.fork = None
+    self.forks = []
     self.jumped = False
+
+  def run_on_all_forks(self, bil_instrs):
+    # run on every fork
+    if not isinstance(bil_instrs, collections.Iterable):
+      bil_instrs = [bil_instrs]
+
+    for ins in bil_instrs:
+      for f in self.forks:
+        f.run(ins)
+      for f in self.forks:
+        # lift all forks to the top
+        if f.forks != []:
+          self.forks += f.forks
+          f.forks = []
+      self.run(ins)
 
   def visit_Load(self, op):
     addr = self.run(op.idx)
@@ -138,7 +153,11 @@ class ConcolicExecutor(adt.Visitor):
   def visit_Ite(self, op):
     cond = self.run(op.cond)
     if isinstance(cond, SymbolicBitVector):
-      return symbolic_conditional(cond, self.run(op.true), self.run(op.false))
+      T = self.run(op.true)
+      F = self.run(op.false)
+      T = T.expr if isinstance(T, SymbolicBitVector) else z3.BitVecVal(T.value, T.size)
+      F = F.expr if isinstance(F, SymbolicBitVector) else z3.BitVecVal(F.value, F.size)
+      return SymbolicBitVector(T.size(), symbolic_conditional(cond == 1, T, F))
     return self.run(op.true) if cond == 1 else self.run(op.false)
 
   def visit_Extract(self, op):
@@ -170,7 +189,7 @@ class ConcolicExecutor(adt.Visitor):
     while True:
       cond = self.run(op.cond)
       if isinstance(cond, SymbolicBitVector):
-          raise Exception("Symbolic conditional not not implemented")
+        raise Exception("Symbolic conditional not not implemented for While loops")
       else:
         if cond != 1:
           break
@@ -179,11 +198,24 @@ class ConcolicExecutor(adt.Visitor):
   def visit_If(self, op):
     cond = self.run(op.cond)
     if isinstance(cond, SymbolicBitVector):
-      state_copy = self.state.get_copy()
-      self.fork = ConcolicExecutor(state_copy, self.pc, constraints=self.constraints + [cond == 1])
-      self.constraints.append(cond == 0)
-      adt.visit(self.fork, op.true)
-      adt.visit(self, op.false)
+      # always take the right branch in cases of Unkown or CPU Exception
+      # TODO: Add more cases here. We should prevent forks as much as possible
+      if isinstance(op.true, bil.CpuExn) or isinstance(op.true, bil.Unknown):
+        self.constraints.append(cond == 0)
+        self.run(op.false)
+      elif isinstance(op.false, bil.CpuExn) or isinstance(op.false, bil.Unknown):
+        self.constraints.append(cond == 1)
+        self.run(op.true)
+      else:
+        # If we can't predict the right branch, fork and take both
+        # Note: the order below matters to maintain forks correctly
+        # TODO: refactor forking
+        state_copy = self.state.get_copy()
+        fork = ConcolicExecutor(state_copy, self.pc, constraints=self.constraints + [cond == 1])
+        fork.run_on_all_forks(op.true)
+        self.constraints.append(cond == 0)
+        self.run_on_all_forks(op.false)
+        self.forks.append(fork)
     else:
       if cond == 1:
         adt.visit(self, op.true)
@@ -408,7 +440,7 @@ def validate_bil(program, flow):
 
   return (errors, warnings)
 
-def satisfy_constraints(program, start_clnum, symbolic_registers, symbolic_memory, user_constraints):
+def satisfy_constraints(program, start_clnum, symbolic_registers, symbolic_memory, user_constraints, assistance):
   """
   Runs the concolic executor from a starting clnum, attempting to satisfy the contraints list.
   Uses concrete values for everything but the specified registers and memory addresses.
@@ -431,52 +463,78 @@ def satisfy_constraints(program, start_clnum, symbolic_registers, symbolic_memor
 
   # add symbolic memory
   initial_mem = {}
-  for address in symbolic_memory:
-    b = z3.BitVec("mem_{}".format(hex(address)), 8)
-    initial_mem[address] = b
+  for (address, length) in symbolic_memory:
+    for addr in range(address, address+length):
+      b = z3.BitVec("mem_{}".format(hex(addr)), 8)
+      initial_mem[addr] = SymbolicBitVector(8, b)
 
   start_state = State(initial_regs, initial_mem_get, initial_mem)
   executors = [ConcolicExecutor(start_state, PC)]
 
   ################################ Below is experimental ################################
 
-  executor = executors.pop(0)
-  while True:
-    s = z3.Solver()
-    for key, value in user_constraints['registers'].items():
-      s.add(executor.state[key] == value)
+  try:
+    # grab the initial executor
+    executor = executors.pop(0)
+    while True:
+      # use the assistance
+      for key, val in assistance['halt'].items():
+        stateval = executor.state[key]
+        if isinstance(stateval, ConcreteBitVector):
+          if stateval == val:
+            print "Assistance says to halt here. Switching fork."
+            executor = executors.pop(len(executors)-1)
+            continue
 
-    for key, (size, value) in user_constraints['memory'].items():
-      print "getting address %s" % key
-      s.add(executor.state.get_mem(int(key, 16), size) == value)
+      # let's try to solve
+      s = z3.Solver()
 
-    for constraint in executor.constraints:
-      s.add(constraint)
+      # add user contraints on registers
+      for key, value in user_constraints['registers'].items():
+        s.add(executor.state[key] == value)
 
-    if s.check().r == 1:
-      return True, s.model()
+      # add user constraints on memory
+      for key, (size, value) in user_constraints['memory'].items():
+        s.add(executor.state.get_mem(int(key, 16), size) == value)
 
-    pc_value = int(executor.state[PC])
-    instr = program.static[pc_value]['instruction']
-    if not isinstance(instr, BapInsn): # is this always the right way to stop?
-      print "switching fork"
-      try:
-        executor = executors.pop(0)
+      # add constraints accumulated from this execution path
+      for constraint in executor.constraints:
+        s.add(constraint)
+
+      # Try to solve
+      if s.check().r == 1:
+        return True, s.model()
+
+      # If we failed, let's run an instruction
+      pc_value = int(executor.state[PC])
+      instr = program.static[pc_value]['instruction']
+
+      # If BAP can't handle the instruction, let's stop
+      if not isinstance(instr, BapInsn):
+        print "Bad Instruction. Switching fork."
+        executor = executors.pop(len(executors)-1)
         continue
-      except IndexError as e:
-        print "No forks left => UNSAT"
-        return False, None
-    bil_instrs = instr.insn.bil
 
-    for bil_ins in bil_instrs:
-      executor.run(bil_ins)
-      if executor.fork != None:
-        executors.append(executor.fork)
-        executor.fork = None
-        print "Forked"
+      bil_instrs = instr.insn.bil
 
-    if not executor.jumped:
-      executor.state[PC] += instr.size()
-    else:
-      executor.jumped = False
+      try:
+        executor.run_on_all_forks(bil_instrs)
+      except Exception as e:
+        print "Error during symbolic execution. Switching fork."
+        executor = executors.pop(len(executors)-1)
+        continue
 
+      # For each fork, step the PC.
+      for e in [executor] + executor.forks:
+        if not e.jumped:
+          e.state[PC] += instr.size()
+        else:
+          e.jumped = False
+
+      # Gather the forks
+      executors += executor.forks
+      executor.forks = []
+
+  except IndexError as e:
+    print "No forks left => UNSAT"
+    return False, None

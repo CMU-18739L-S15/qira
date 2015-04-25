@@ -1,9 +1,12 @@
 {
- "start":4,
- "regs": ["EAX", "ECX"],
-  "mem": [],
+ "start":125,
+ "regs": [],
+  "mem": [(0xf6fff3ac, 32)],
   "constraints": {
-    "registers": {"ECX": 0xc0deface, "EIP":0x8048084},
-    "memory": {"8049093": (4, 0x1337b33f)}
+    "registers": {"EIP":0x80486ab},
+    "memory": {}
+  },
+  "assist": {
+    "halt": {}#"EIP": 0x80486c1}
   }
 }

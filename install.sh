@@ -44,6 +44,9 @@ fi
 # you should install BAP!
 ./bap_install.sh
 
+# install dependencies for concolic executor
+./tracers/bap_concolic/install.sh
+
 echo "installing pip packages"
 virtualenv venv
 source venv/bin/activate
