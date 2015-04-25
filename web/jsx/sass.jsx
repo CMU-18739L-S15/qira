@@ -35,12 +35,12 @@ qira.formatAddress = function(address) {
 qira.sassAddConstraintModal = React.createClass({
     mixins: [React.addons.LinkedStateMixin],
     getInitialState: function() {
-        return {name: "", target: "", value:"", type:""};
+        return {name: "", target: "", value:"", type:"memory"};
     },
     getForms: function() {
         if(this.state.type === "memory") {
             return <div> 
-            <rb.Input type='text' className="ignore" label='Address' valueLink={this.linkState('address')}  placeholder=''/>
+            <rb.Input type='text' className="ignore" label='Address' valueLink={this.linkState('target')}  placeholder=''/>
             <rb.Input type='text' className="ignore" label='Value' valueLink={this.linkState('value')} placeholder=''/>
             </div>
         } else {
@@ -58,7 +58,7 @@ qira.sassAddConstraintModal = React.createClass({
         <div className="modal-body">
         <form>
         <rb.Input type='select' label='Constraint type' valueLink={this.linkState('type')}>
-        <option value='memory'>Memory</option>
+        <option value='memory' selected>Memory</option>
         {registerOptions}
         </rb.Input>
         {this.getForms()}
@@ -66,7 +66,7 @@ qira.sassAddConstraintModal = React.createClass({
         </div>
         <div className='modal-footer'>
         <rb.Button onClick={this.props.onRequestHide}>Close</rb.Button>
-        <rb.Button onClick={this.props.onSubmit}>Add</rb.Button>
+        <rb.Button onClick={this.props.onAdd.bind(this, this.state)}>Add</rb.Button>
         </div>
         </rb.Modal>;
     }
@@ -80,7 +80,6 @@ qira.sassConstraintPanel = React.createClass({
     },
     createMemoryConstraint: function(constraint) {
         var link = qira.formatAddress(constraint.target);
-        console.log(qira.formatAddress(constraint.target));
         return <div><rb.Label bsStyle="primary">MEM</rb.Label> {link} <i className="fa fa-long-arrow-right"></i> {constraint.value} </div>;
     },
     createRegisterConstraint: function(constraint) {
@@ -88,17 +87,15 @@ qira.sassConstraintPanel = React.createClass({
         return <div><rb.Label bsStyle="info">REG</rb.Label> {link} <i className="fa fa-long-arrow-right"></i> {constraint.value}</div>;
     },
     header: function () {
-        var modal = <qira.sassAddConstraintModal container={this}/>;
+        var modal = <qira.sassAddConstraintModal container={this} onAdd={this.props.onAdd}/>;
         return (<div>
              Constraints
                   <div className='modal-container'>
                   <rb.ModalTrigger modal={modal} container={this}>
                   <rb.Button bsSize='xsmall'><i className="fa fa-plus"></i></rb.Button>
              </rb.ModalTrigger>
-      </div>
+              </div>
                 </div>);
-    },
-    onConstraintAdd: function(name, type, target, value) {
     },
     render: function() {
         var constraintItems = this.props.constraints.map(this.createConstraint);
@@ -127,13 +124,26 @@ qira.sassApp = React.createClass({
 
         this.setState({constraints: newConstraints});
     },
+    onConstraintAdd: function(constraint) {
+        // Right now we are only supporting concrete values.
+        // However, in the future, we should not enforce uniqueness
+        // naively as it would be great to be able to constrain values
+        // to some range, equality, etc.
+        if(constraint.type !== "memory") {
+            constraint.target = constraint.type;
+            constraint.type = "register";
+        }
+        var newConstraints = this.state.constraints.concat(constraint);
+        this.setState({constraints: newConstraints});
+    },
     render: function() {
         return (
                 <div className="bs fill">
                 <rb.Col xs={6} className="fill">
                 <qira.sassConstraintPanel
-            onDelete={this.handleConstraintDelete}
-            constraints={this.state.constraints}/> </rb.Col>
+                onDelete={this.handleConstraintDelete}
+                onAdd={this.onConstraintAdd}
+                constraints={this.state.constraints}/> </rb.Col>
                 </div>);
     }
 });

@@ -35,12 +35,12 @@ qira.formatAddress = function(address) {
 qira.sassAddConstraintModal = React.createClass({displayName: "sassAddConstraintModal",
     mixins: [React.addons.LinkedStateMixin],
     getInitialState: function() {
-        return {name: "", target: "", value:"", type:""};
+        return {name: "", target: "", value:"", type:"memory"};
     },
     getForms: function() {
         if(this.state.type === "memory") {
             return React.createElement("div", null, 
-            React.createElement(rb.Input, {type: "text", className: "ignore", label: "Address", valueLink: this.linkState('address'), placeholder: ""}), 
+            React.createElement(rb.Input, {type: "text", className: "ignore", label: "Address", valueLink: this.linkState('target'), placeholder: ""}), 
             React.createElement(rb.Input, {type: "text", className: "ignore", label: "Value", valueLink: this.linkState('value'), placeholder: ""})
             )
         } else {
@@ -58,7 +58,7 @@ qira.sassAddConstraintModal = React.createClass({displayName: "sassAddConstraint
         React.createElement("div", {className: "modal-body"}, 
         React.createElement("form", null, 
         React.createElement(rb.Input, {type: "select", label: "Constraint type", valueLink: this.linkState('type')}, 
-        React.createElement("option", {value: "memory"}, "Memory"), 
+        React.createElement("option", {value: "memory", selected: true}, "Memory"), 
         registerOptions
         ), 
         this.getForms()
@@ -66,7 +66,7 @@ qira.sassAddConstraintModal = React.createClass({displayName: "sassAddConstraint
         ), 
         React.createElement("div", {className: "modal-footer"}, 
         React.createElement(rb.Button, {onClick: this.props.onRequestHide}, "Close"), 
-        React.createElement(rb.Button, {onClick: this.props.onSubmit}, "Add")
+        React.createElement(rb.Button, {onClick: this.props.onAdd.bind(this, this.state)}, "Add")
         )
         );
     }
@@ -80,7 +80,6 @@ qira.sassConstraintPanel = React.createClass({displayName: "sassConstraintPanel"
     },
     createMemoryConstraint: function(constraint) {
         var link = qira.formatAddress(constraint.target);
-        console.log(qira.formatAddress(constraint.target));
         return React.createElement("div", null, React.createElement(rb.Label, {bsStyle: "primary"}, "MEM"), " ", link, " ", React.createElement("i", {className: "fa fa-long-arrow-right"}), " ", constraint.value, " ");
     },
     createRegisterConstraint: function(constraint) {
@@ -88,17 +87,15 @@ qira.sassConstraintPanel = React.createClass({displayName: "sassConstraintPanel"
         return React.createElement("div", null, React.createElement(rb.Label, {bsStyle: "info"}, "REG"), " ", link, " ", React.createElement("i", {className: "fa fa-long-arrow-right"}), " ", constraint.value);
     },
     header: function () {
-        var modal = React.createElement(qira.sassAddConstraintModal, {container: this});
+        var modal = React.createElement(qira.sassAddConstraintModal, {container: this, onAdd: this.props.onAdd});
         return (React.createElement("div", null, 
              "Constraints", 
                   React.createElement("div", {className: "modal-container"}, 
                   React.createElement(rb.ModalTrigger, {modal: modal, container: this}, 
                   React.createElement(rb.Button, {bsSize: "xsmall"}, React.createElement("i", {className: "fa fa-plus"}))
              )
-      )
+              )
                 ));
-    },
-    onConstraintAdd: function(name, type, target, value) {
     },
     render: function() {
         var constraintItems = this.props.constraints.map(this.createConstraint);
@@ -127,13 +124,26 @@ qira.sassApp = React.createClass({displayName: "sassApp",
 
         this.setState({constraints: newConstraints});
     },
+    onConstraintAdd: function(constraint) {
+        // Right now we are only supporting concrete values.
+        // However, in the future, we should not enforce uniqueness
+        // naively as it would be great to be able to constrain values
+        // to some range, equality, etc.
+        if(constraint.type !== "memory") {
+            constraint.target = constraint.type;
+            constraint.type = "register";
+        }
+        var newConstraints = this.state.constraints.concat(constraint);
+        this.setState({constraints: newConstraints});
+    },
     render: function() {
         return (
                 React.createElement("div", {className: "bs fill"}, 
                 React.createElement(rb.Col, {xs: 6, className: "fill"}, 
                 React.createElement(qira.sassConstraintPanel, {
-            onDelete: this.handleConstraintDelete, 
-            constraints: this.state.constraints}), " ")
+                onDelete: this.handleConstraintDelete, 
+                onAdd: this.onConstraintAdd, 
+                constraints: this.state.constraints}), " ")
                 ));
     }
 });
