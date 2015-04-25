@@ -71,7 +71,8 @@ $(document).ready(function() {
             //UI elements now exist in the DOM.
             head.load(scripts);
 
-            React.render(<Hello t="asd" />, document.getElementById("sass"));
+            var qira = window.qira;
+            React.render(<qira.sassApp />, document.getElementById("sass"));
         });
 
 });

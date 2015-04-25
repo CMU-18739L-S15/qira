@@ -5,7 +5,7 @@ var scripts = ["/client/controls.js", "/client/ida.js", "/client/idump.js", "/cl
 
 var Hello = React.createClass({displayName: "Hello",
     render: function() {
-        return React.createElement("div", null, "yolo ", this.props.t);
+        return React.createElement("div", null, "Test");
     }
 });
 
@@ -71,7 +71,8 @@ $(document).ready(function() {
             //UI elements now exist in the DOM.
             head.load(scripts);
 
-            React.render(React.createElement(Hello, {t: "asd"}), document.getElementById("sass"));
+            var qira = window.qira;
+            React.render(React.createElement(qira.sassApp, null), document.getElementById("sass"));
         });
 
 });
