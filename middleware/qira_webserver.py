@@ -395,7 +395,7 @@ def getregisters(forknum, clnum):
 @socket_method
 def startsolver(forknum, clnum):
   print("starting")
-  trace = program.traces[0]
+  trace = program.traces[forknum]
   sass = qira_analysis.SASS(trace, socketio, clnum)
   sass.start()
 # ***** generic webserver stuff *****
