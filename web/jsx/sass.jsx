@@ -2,13 +2,18 @@ window.qira = window.qira || {};
 var qira = window.qira;
 var rb = window.ReactBootstrap;
 
-qira.formatAddress = function(address) {
+qira.formatAddress = function(address, offset) {
     var pmaps = Session.get("pmaps");
 
     if(pmaps === undefined) {
         console.log("pmaps undefined");
     }
 
+    if(offset !== undefined) {
+        var addressInt = parseInt(address) + parseInt(offset);
+        address = "0x" + addressInt.toString(16);
+    }
+    
     var mapAddresses = _.keys(pmaps);
     var ranges = _.sortBy(_.map(mapAddresses, function(addr) {
         return {label: addr, value: parseInt(addr)};
@@ -120,9 +125,100 @@ qira.sassConstraintPanel = React.createClass({
     }
 });
 
+qira.sassAddSymbolicModal = React.createClass({
+    mixins: [React.addons.LinkedStateMixin],
+    getInitialState: function() {
+        return {name: "", target: "", size: 4, type: "memory"};
+    },
+    getForms: function() {
+        if(this.state.type === "memory") {
+            return <div className="row"> 
+            <rb.Col xs={9}>
+            <rb.Input type='text' className="ignore" label='Address' valueLink={this.linkState('target')}  placeholder=''/>
+            </rb.Col>
+            <rb.Col xs={3}>
+            <rb.Input type='text' className="ignore" label='Size' valueLink={this.linkState('size')} placeholder=''/>
+            </rb.Col>
+            </div>
+        } else {
+            return <div/>; 
+        }
+    },
+    onAddThenClose: function(state) {
+        this.props.onAdd.bind(this, state)();
+        this.props.onRequestHide();
+    },
+    render: function() {
+        var registerOptions = Session.get("registers").map(function(register) {
+            return <option value={register.name}>{register.name}</option>;
+        });
+        
+        return <rb.Modal {...this.props} className="bs" bsStyle="primary" title="Add a symbolic value" animation={false}>
+        <div className="modal-body">
+        <form>
+        <rb.Input type='select' label='Symbolic type' valueLink={this.linkState('type')}>
+        <option value='memory' selected>Memory</option>
+        {registerOptions}
+        </rb.Input>
+        {this.getForms()}
+        </form>
+        </div>
+        <div className='modal-footer'>
+        <rb.Button onClick={this.props.onRequestHide}>Close</rb.Button>
+        <rb.Button onClick={this.onAddThenClose.bind(this, this.state)}>Add</rb.Button>
+        </div>
+        </rb.Modal>;
+    }
+});
+
+qira.sassSymbolicPanel = React.createClass({
+    createSymbolic: function(symbolic) {
+        var deleteButton = <i className="fa fa-remove pull-right" onClick={this.props.onDelete.bind(this, symbolic)}></i>;
+        var symbolicType = symbolic.type == "memory" ? this.createMemorySymbolic : this.createRegisterSymbolic;
+        return (<rb.ListGroupItem className="fill">{deleteButton} {symbolicType(symbolic)}</rb.ListGroupItem>);
+    },
+    createMemorySymbolic: function(symbolic) {
+        var link = qira.formatAddress(symbolic.target);
+        var arrow = <i className="fa fa-long-arrow-right"></i>;
+        return <div><rb.Label bsStyle="primary">MEM</rb.Label> {link} {arrow} {qira.formatAddress(symbolic.target, symbolic.size)}</div>;
+    },
+    createRegisterSymbolic: function(symbolic) {
+        var link = <span className = "register">{symbolic.target}</span>;
+        return <div><rb.Label bsStyle="info">REG</rb.Label> {link}</div>;
+    },
+    header: function () {
+        var modal = <qira.sassAddSymbolicModal container={this} onAdd={this.props.onAdd}/>;
+        
+        var addButton = <div className='modal-container pull-right'> 
+        <rb.ModalTrigger modal={modal} container={this}>
+        <rb.Button bsSize='xsmall'><i className="fa fa-plus"></i></rb.Button>
+        </rb.ModalTrigger></div>;
+        
+        return (<h4 className="panel-title">
+             Symbolic {addButton}
+                </h4>);
+    },
+    render: function() {
+        var symbolicItems = this.props.symbolics.map(this.createSymbolic);
+        
+        if(symbolicItems.length == 0) {
+           symbolicItems = <p>To take advantage of the symbolic solver add some symbolics regions above.</p>;
+        }
+        return (<div className="bs">
+                  <rb.Panel header={this.header()}>
+                  <ul className="list-group">
+                  {symbolicItems}
+                  </ul>
+                  </rb.Panel>
+            </div>);
+    }
+});
+
 qira.sassApp = React.createClass({
     getInitialState: function() {
         return {
+            symbolics: [{name: "testa", type: "register", target: "RAX", size: 0},
+                       {name: "testb", type: "memory", target: "0x40007ffea0", size: 16}],
             constraints: [{name: "test1", type: "register", target: "RIP", value: "0x1337beef"},
                           {name: "test2", type: "memory", target: "0x4005cc", value: "0xcoffee"},
                           {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee"}]
@@ -146,16 +242,40 @@ qira.sassApp = React.createClass({
         var newConstraints = this.state.constraints.concat(constraint);
         this.setState({constraints: newConstraints});
     },
+    handleSymbolicDelete: function(symbolic) {
+        var newSymbolics = _.reject(this.state.symbolics, function (item) {
+            return item == symbolic;
+        });
+        this.setState({symbolics: newSymbolics});
+    },
+    onSymbolicAdd: function(symbolic) {
+        // Right now we are only supporting concrete values.
+        // However, in the future, we should not enforce uniqueness
+        // naively as it would be great to be able to constrain values
+        // to some range, equality, etc.
+        if(symbolic.type !== "memory") {
+            symbolic.target = symbolic.type;
+            symbolic.type = "register";
+        }
+        var newSymbolics = this.state.symbolics.concat(symbolic);
+        this.setState({symbolics: newSymbolics});
+    },
     render: function() {
         return (
-                <div className="bs fill">
+            <div className="bs fill">
                 <rb.Col xs={4} className="fill">
                 <qira.sassConstraintPanel
                 onDelete={this.handleConstraintDelete}
                 onAdd={this.onConstraintAdd}
                 constraints={this.state.constraints}/>
+            </rb.Col>
+                <rb.Col xs={4} className="fill">
+                <qira.sassSymbolicPanel
+                onDelete={this.handleSymbolicDelete}
+                onAdd={this.onSymbolicAdd}
+                symbolics={this.state.symbolics}/>
                 </rb.Col>
-                </div>);
+            </div>);
     }
 });
 
