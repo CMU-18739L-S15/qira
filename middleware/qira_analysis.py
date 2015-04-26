@@ -9,6 +9,22 @@ import struct
 sys.path.append(qira_config.BASEDIR+"/static2")
 import static2
 
+sys.path.append("tracers/bap_concolic/")
+from concolic_executor import satisfy_constraints
+import threading
+
+class SASS(threading.Thread):
+  def __init__(self, program, stream, data):
+    threading.Thread.__init__(self)
+    self.program = program
+    self.stream = stream
+    self.data = data
+
+  def run(self):
+    self.stream.emit("sassstatus", "running", namespace="/qira")
+    results = satisfy_constraints(self.program, self.data['clnum'], ata['regs'], data['mem'], data['constraints'], data['assist'])
+    self.stream.emit("sassstatus", "results", results, namespace="/qira")
+
 def ghex(a):
   if a == None:
     return None
