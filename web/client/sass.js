@@ -94,28 +94,29 @@ qira.sassConstraintPanel = React.createClass({displayName: "sassConstraintPanel"
     },
     header: function () {
         var modal = React.createElement(qira.sassAddConstraintModal, {container: this, onAdd: this.props.onAdd});
-        return (React.createElement("div", null, 
-             "Constraints", 
-                  React.createElement("div", {className: "modal-container"}, 
-                  React.createElement(rb.ModalTrigger, {modal: modal, container: this}, 
-                  React.createElement(rb.Button, {bsSize: "xsmall"}, React.createElement("i", {className: "fa fa-plus"}))
-             )
-              )
+        
+        var addButton = React.createElement("div", {className: "modal-container pull-right"}, 
+        React.createElement(rb.ModalTrigger, {modal: modal, container: this}, 
+        React.createElement(rb.Button, {bsSize: "xsmall"}, React.createElement("i", {className: "fa fa-plus"}))
+        ));
+        
+        return (React.createElement("h4", {className: "panel-title"}, 
+             "Constraints ", addButton
                 ));
     },
     render: function() {
         var constraintItems = this.props.constraints.map(this.createConstraint);
-        if(constraintItems.length > 0) {
-            return (React.createElement("div", {className: "bs"}, 
-                React.createElement(rb.Panel, {header: this.header()}, 
-                React.createElement("ul", {className: "list-group"}, 
-                constraintItems
-                )
-                )
-            ));
-        } else {
-            React.createElement("p", null, "To take advantage of the constraint solver add some constraints above.")
+        
+        if(constraintItems.length == 0) {
+           constraintItems = React.createElement("p", null, "To take advantage of the constraint solver add some constraints above.");
         }
+        return (React.createElement("div", {className: "bs"}, 
+                  React.createElement(rb.Panel, {header: this.header()}, 
+                  React.createElement("ul", {className: "list-group"}, 
+                  constraintItems
+                  )
+                  )
+            ));
     }
 });
 
@@ -129,11 +130,8 @@ qira.sassApp = React.createClass({displayName: "sassApp",
     },
     handleConstraintDelete: function(constraint) {
         var newConstraints = _.reject(this.state.constraints, function (item) {
-            console.log(constraint);
-            console.log(item);
             return item == constraint;
         });
-        console.log(newConstraints);
         this.setState({constraints: newConstraints});
     },
     onConstraintAdd: function(constraint) {
@@ -151,11 +149,12 @@ qira.sassApp = React.createClass({displayName: "sassApp",
     render: function() {
         return (
                 React.createElement("div", {className: "bs fill"}, 
-                React.createElement(rb.Col, {xs: 6, className: "fill"}, 
+                React.createElement(rb.Col, {xs: 4, className: "fill"}, 
                 React.createElement(qira.sassConstraintPanel, {
                 onDelete: this.handleConstraintDelete, 
                 onAdd: this.onConstraintAdd, 
-                constraints: this.state.constraints}), " ")
+                constraints: this.state.constraints})
+                )
                 ));
     }
 });

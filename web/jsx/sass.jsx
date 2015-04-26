@@ -94,28 +94,29 @@ qira.sassConstraintPanel = React.createClass({
     },
     header: function () {
         var modal = <qira.sassAddConstraintModal container={this} onAdd={this.props.onAdd}/>;
-        return (<div>
-             Constraints
-                  <div className='modal-container'>
-                  <rb.ModalTrigger modal={modal} container={this}>
-                  <rb.Button bsSize='xsmall'><i className="fa fa-plus"></i></rb.Button>
-             </rb.ModalTrigger>
-              </div>
-                </div>);
+        
+        var addButton = <div className='modal-container pull-right'> 
+        <rb.ModalTrigger modal={modal} container={this}>
+        <rb.Button bsSize='xsmall'><i className="fa fa-plus"></i></rb.Button>
+        </rb.ModalTrigger></div>;
+        
+        return (<h4 className="panel-title">
+             Constraints {addButton}
+                </h4>);
     },
     render: function() {
         var constraintItems = this.props.constraints.map(this.createConstraint);
-        if(constraintItems.length > 0) {
-            return (<div className="bs">
-                <rb.Panel header={this.header()}>
-                <ul className="list-group">
-                {constraintItems}
-                </ul>
-                </rb.Panel>
-            </div>);
-        } else {
-            <p>To take advantage of the constraint solver add some constraints above.</p>
+        
+        if(constraintItems.length == 0) {
+           constraintItems = <p>To take advantage of the constraint solver add some constraints above.</p>;
         }
+        return (<div className="bs">
+                  <rb.Panel header={this.header()}>
+                  <ul className="list-group">
+                  {constraintItems}
+                  </ul>
+                  </rb.Panel>
+            </div>);
     }
 });
 
@@ -129,11 +130,8 @@ qira.sassApp = React.createClass({
     },
     handleConstraintDelete: function(constraint) {
         var newConstraints = _.reject(this.state.constraints, function (item) {
-            console.log(constraint);
-            console.log(item);
             return item == constraint;
         });
-        console.log(newConstraints);
         this.setState({constraints: newConstraints});
     },
     onConstraintAdd: function(constraint) {
@@ -151,11 +149,12 @@ qira.sassApp = React.createClass({
     render: function() {
         return (
                 <div className="bs fill">
-                <rb.Col xs={6} className="fill">
+                <rb.Col xs={4} className="fill">
                 <qira.sassConstraintPanel
                 onDelete={this.handleConstraintDelete}
                 onAdd={this.onConstraintAdd}
-                constraints={this.state.constraints}/> </rb.Col>
+                constraints={this.state.constraints}/>
+                </rb.Col>
                 </div>);
     }
 });
