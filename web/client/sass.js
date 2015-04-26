@@ -326,9 +326,12 @@ qira.sassApp = React.createClass({displayName: "sassApp",
         this.setState({symbolics: newSymbolics});
     },
     formatSolverState: function() {
-        console.log(this.state);
         var sassState = {
-            clnum: this.state.options.clnum,
+            start: this.state.options.clnum,
+            symbolic: {
+                registers: [],
+                memory: {}
+            },
             constraints: {
                 registers: {},
                 memory: {}
@@ -342,23 +345,30 @@ qira.sassApp = React.createClass({displayName: "sassApp",
         };
 
         var symbolics = groupByType(this.state.symbolics);
-        console.log(symbolics);
 
-        sassState.regs = _.map(symbolics.register, function(reg) { return reg.target; });
-        sassState.mem = _.map(symbolics.memory, function(mem) { return [parseInt(mem.target), mem.size]; });
+        sassState.symbolic.registers = _.map(symbolics.register, function(reg) { return reg.target; });
+        sassState.symbolic.memory = _.map(symbolics.memory, function(mem) {
+            return {address: parseInt(mem.target), size: mem.size};
+        });
 
         var constraints = groupByType(this.state.constraints);
-        console.log(constraints);
-        sassState.constraints = {registers: {}, memory: {}};
+
+        sassState.constraints.registers = _.map(constraints.register, function(reg) {
+            return {name: reg.target, value: reg.value};
+        });
+
+        sassState.constraints.memory = _.map(constraints.memory, function(mem) {
+            return {address: parseInt(mem.target), value: parseInt(mem.value), size: mem.size};
+        });
 
         //We do not support this in the ui at this time.
         sassState.assist = {};
 
-        console.log(sassState);
+        return sassState;
     },
     onSolverStart: function(stream) {
         console.log("starting solver");
-        stream.emit("startsolver", Session.get("forknum"), 200);
+        stream.emit("startsolver", Session.get("forknum"), this.formatSolverState());
     },
     onSolverStop: function(stream) {
         console.log("stopping solver");
