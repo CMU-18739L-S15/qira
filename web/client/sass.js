@@ -84,11 +84,13 @@ qira.sassConstraintPanel = React.createClass({displayName: "sassConstraintPanel"
     },
     createMemoryConstraint: function(constraint) {
         var link = qira.formatAddress(constraint.target);
-        return React.createElement("div", null, React.createElement(rb.Label, {bsStyle: "primary"}, "MEM"), " ", link, " ", React.createElement("i", {className: "fa fa-long-arrow-right"}), " ", constraint.value, " ");
+        var arrow = React.createElement("i", {className: "fa fa-long-arrow-right"});
+        return React.createElement("div", null, React.createElement(rb.Label, {bsStyle: "primary"}, "MEM"), " ", link, " ", arrow, " ", qira.formatAddress(constraint.value));
     },
     createRegisterConstraint: function(constraint) {
         var link = React.createElement("span", {className: "register"}, constraint.target);
-        return React.createElement("div", null, React.createElement(rb.Label, {bsStyle: "info"}, "REG"), " ", link, " ", React.createElement("i", {className: "fa fa-long-arrow-right"}), " ", constraint.value);
+        var arrow = React.createElement("i", {className: "fa fa-long-arrow-right"});
+        return React.createElement("div", null, React.createElement(rb.Label, {bsStyle: "info"}, "REG"), " ", link, " ", arrow, " ", qira.formatAddress(constraint.value));
     },
     header: function () {
         var modal = React.createElement(qira.sassAddConstraintModal, {container: this, onAdd: this.props.onAdd});
