@@ -390,11 +390,6 @@ class Trace:
         self.dmap = qira_analysis.get_hacked_depth_map(self.flow, self.program)
         qira_analysis.analyse_calls(self.program, self.flow)
 
-        sys.path.append("tracers/bap_concolic/")
-        from concolic_executor import satisfy_constraints
-        with open("tracers/bap_concolic/test_data","r") as f:
-          data = eval(f.read())
-          print satisfy_constraints(self.program, data['start'], data['regs'], data['mem'], data['constraints'], data['assist'])
 
         # hacky pin offset problem fix
         hpo = len(self.dmap)-(maxclnum-minclnum)
