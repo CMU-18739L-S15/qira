@@ -13,7 +13,7 @@ qira.formatAddress = function(address, offset) {
         var addressInt = parseInt(address) + parseInt(offset);
         address = "0x" + addressInt.toString(16);
     }
-    
+
     var mapAddresses = _.keys(pmaps);
     var ranges = _.sortBy(_.map(mapAddresses, function(addr) {
         return {label: addr, value: parseInt(addr)};
@@ -44,14 +44,15 @@ qira.sassAddConstraintModal = React.createClass({
     },
     getForms: function() {
         if(this.state.type === "memory") {
-            return <div> 
-            <rb.Input type='text' className="ignore" label='Address' valueLink={this.linkState('target')}  placeholder=''/>
-            <rb.Input type='text' className="ignore" label='Value' valueLink={this.linkState('value')} placeholder=''/>
-            </div>
+            return (
+                <div>
+                    <rb.Input type='text' className="ignore" label='Address' valueLink={this.linkState('target')}  placeholder=''/>
+                    <rb.Input type='text' className="ignore" label='Value' valueLink={this.linkState('value')} placeholder=''/>
+                </div>);
         } else {
-            return <div> 
+            return <div>
             <rb.Input type='text' className="ignore" label='Value' valueLink={this.linkState('value')} placeholder=''/>
-            </div>
+            </div>;
         }
     },
     onAddThenClose: function(state) {
@@ -62,21 +63,21 @@ qira.sassAddConstraintModal = React.createClass({
         var registerOptions = Session.get("registers").map(function(register) {
             return <option value={register.name}>{register.name}</option>;
         });
-        
+
         return <rb.Modal {...this.props} className="bs" bsStyle="primary" title="Add a constraint" animation={false}>
-        <div className="modal-body">
-        <form>
-        <rb.Input type='select' label='Constraint type' valueLink={this.linkState('type')}>
-        <option value='memory' selected>Memory</option>
-        {registerOptions}
-        </rb.Input>
-        {this.getForms()}
-        </form>
-        </div>
-        <div className='modal-footer'>
-        <rb.Button onClick={this.props.onRequestHide}>Close</rb.Button>
-        <rb.Button onClick={this.onAddThenClose.bind(this, this.state)}>Add</rb.Button>
-        </div>
+                <div className="modal-body">
+                    <form>
+                        <rb.Input type='select' label='Constraint type' valueLink={this.linkState('type')}>
+                            <option value='memory' selected>Memory</option>
+                            {registerOptions}
+                        </rb.Input>
+                        {this.getForms()}
+                    </form>
+                </div>
+                <div className='modal-footer'>
+                    <rb.Button onClick={this.props.onRequestHide}>Close</rb.Button>
+                    <rb.Button onClick={this.onAddThenClose.bind(this, this.state)}>Add</rb.Button>
+                </div>
         </rb.Modal>;
     }
 });
@@ -99,28 +100,31 @@ qira.sassConstraintPanel = React.createClass({
     },
     header: function () {
         var modal = <qira.sassAddConstraintModal container={this} onAdd={this.props.onAdd}/>;
-        
-        var addButton = <div className='modal-container pull-right'> 
-        <rb.ModalTrigger modal={modal} container={this}>
-        <rb.Button bsSize='xsmall'><i className="fa fa-plus"></i></rb.Button>
-        </rb.ModalTrigger></div>;
-        
-        return (<h4 className="panel-title">
-             Constraints {addButton}
-                </h4>);
+
+        var addButton = <div className='modal-container pull-right'>
+            <rb.ModalTrigger modal={modal} container={this}>
+                <rb.Button bsSize='xsmall'><i className="fa fa-plus"></i></rb.Button>
+            </rb.ModalTrigger></div>;
+
+        return (
+            <h4 className="panel-title">
+                Constraints {addButton}
+            </h4>);
     },
     render: function() {
         var constraintItems = this.props.constraints.map(this.createConstraint);
-        
-        if(constraintItems.length == 0) {
+
+        if(constraintItems.length === 0) {
            constraintItems = <p>To take advantage of the constraint solver add some constraints above.</p>;
         }
-        return (<div className="bs">
-                  <rb.Panel header={this.header()}>
-                  <ul className="list-group">
-                  {constraintItems}
-                  </ul>
-                  </rb.Panel>
+
+        return (
+            <div className="bs">
+                <rb.Panel header={this.header()}>
+                    <ul className="list-group">
+                        {constraintItems}
+                    </ul>
+                </rb.Panel>
             </div>);
     }
 });
@@ -132,16 +136,16 @@ qira.sassAddSymbolicModal = React.createClass({
     },
     getForms: function() {
         if(this.state.type === "memory") {
-            return <div className="row"> 
-            <rb.Col xs={9}>
-            <rb.Input type='text' className="ignore" label='Address' valueLink={this.linkState('target')}  placeholder=''/>
-            </rb.Col>
-            <rb.Col xs={3}>
-            <rb.Input type='text' className="ignore" label='Size' valueLink={this.linkState('size')} placeholder=''/>
-            </rb.Col>
-            </div>
+            return <div className="row">
+                <rb.Col xs={9}>
+                    <rb.Input type='text' className="ignore" label='Address' valueLink={this.linkState('target')}  placeholder=''/>
+                </rb.Col>
+                <rb.Col xs={3}>
+                    <rb.Input type='text' className="ignore" label='Size' valueLink={this.linkState('size')} placeholder=''/>
+                </rb.Col>
+            </div>;
         } else {
-            return <div/>; 
+            return <div/>;
         }
     },
     onAddThenClose: function(state) {
@@ -152,21 +156,21 @@ qira.sassAddSymbolicModal = React.createClass({
         var registerOptions = Session.get("registers").map(function(register) {
             return <option value={register.name}>{register.name}</option>;
         });
-        
+
         return <rb.Modal {...this.props} className="bs" bsStyle="primary" title="Add a symbolic value" animation={false}>
-        <div className="modal-body">
-        <form>
-        <rb.Input type='select' label='Symbolic type' valueLink={this.linkState('type')}>
-        <option value='memory' selected>Memory</option>
-        {registerOptions}
-        </rb.Input>
-        {this.getForms()}
-        </form>
-        </div>
-        <div className='modal-footer'>
-        <rb.Button onClick={this.props.onRequestHide}>Close</rb.Button>
-        <rb.Button onClick={this.onAddThenClose.bind(this, this.state)}>Add</rb.Button>
-        </div>
+                <div className="modal-body">
+                    <form>
+                        <rb.Input type='select' label='Symbolic type' valueLink={this.linkState('type')}>
+                            <option value='memory' selected>Memory</option>
+                            {registerOptions}
+                        </rb.Input>
+                        {this.getForms()}
+                    </form>
+                </div>
+                <div className='modal-footer'>
+                    <rb.Button onClick={this.props.onRequestHide}>Close</rb.Button>
+                    <rb.Button onClick={this.onAddThenClose.bind(this, this.state)}>Add</rb.Button>
+                </div>
         </rb.Modal>;
     }
 });
@@ -188,28 +192,29 @@ qira.sassSymbolicPanel = React.createClass({
     },
     header: function () {
         var modal = <qira.sassAddSymbolicModal container={this} onAdd={this.props.onAdd}/>;
-        
-        var addButton = <div className='modal-container pull-right'> 
-        <rb.ModalTrigger modal={modal} container={this}>
-        <rb.Button bsSize='xsmall'><i className="fa fa-plus"></i></rb.Button>
-        </rb.ModalTrigger></div>;
-        
+
+        var addButton = <div className='modal-container pull-right'>
+            <rb.ModalTrigger modal={modal} container={this}>
+                <rb.Button bsSize='xsmall'><i className="fa fa-plus"></i></rb.Button>
+            </rb.ModalTrigger></div>;
+
         return (<h4 className="panel-title">
              Symbolic {addButton}
                 </h4>);
     },
     render: function() {
         var symbolicItems = this.props.symbolics.map(this.createSymbolic);
-        
-        if(symbolicItems.length == 0) {
+
+        if(symbolicItems.length === 0) {
            symbolicItems = <p>To take advantage of the symbolic solver add some symbolics regions above.</p>;
         }
-        return (<div className="bs">
-                  <rb.Panel header={this.header()}>
-                  <ul className="list-group">
-                  {symbolicItems}
-                  </ul>
-                  </rb.Panel>
+        return (
+            <div className="bs">
+                <rb.Panel header={this.header()}>
+                    <ul className="list-group">
+                        {symbolicItems}
+                    </ul>
+                </rb.Panel>
             </div>);
     }
 });
@@ -220,14 +225,16 @@ qira.sassSolverPanel = React.createClass({
     },
     header: function () {
         var modal = <qira.sassAddSymbolicModal container={this} onAdd={this.props.onAdd}/>;
-        var buttons = <rb.ButtonToolbar className="pull-right">
-        <rb.Button bsSize="xsmall" onClick={this.props.onStart.bind(this, this.state.stream)} bsStyle="success">Start</rb.Button>
-        <rb.Button bsSize="xsmall" onClick={this.props.onStop.bind(this, this.state.stream)} bsStyle='primary'>Stop</rb.Button>
+        var buttons =
+        <rb.ButtonToolbar className="pull-right">
+                <rb.Button bsSize="xsmall" onClick={this.props.onStart.bind(this, this.state.stream)} bsStyle="success">Start</rb.Button>
+                <rb.Button bsSize="xsmall" onClick={this.props.onStop.bind(this, this.state.stream)} bsStyle='primary'>Stop</rb.Button>
         </rb.ButtonToolbar>;
 
-        return (<h4 className="panel-title">
-             Symbolic Solver {buttons}
-                </h4>);
+        return (
+            <h4 className="panel-title">
+                Symbolic Solver {buttons}
+            </h4>);
     },
     componentDidMount: function() {
         var newState = {stream: io.connect(STREAM_URL), status: "waiting"};
@@ -247,20 +254,20 @@ qira.sassSolverPanel = React.createClass({
         } else if(solverStatus === "running") {
             return <h2>Solving... <i className="fa fa-plus fa-spin"></i></h2>;
         } else if(solverStatus === "results") {
-            return <h2>{this.state.results}</h2>
+            return <h2>{this.state.results}</h2>;
         }
     },
     render: function() {
-        return (<div className="bs">
+        return <div className="bs">
                 <rb.Panel header={this.header()}>
-                  <rb.Col xs={3}>
-            <rb.Input type='text' className="ignore" label='Starting clnum' onChange={this.props.onClnumChange} value={this.props.data.options.clnum} placeholder=''/>
-            </rb.Col>
-            <rb.Col xs={9}>
-              {this.makeDisplay()}
-            </rb.Col>
-                  </rb.Panel>
-            </div>);
+                    <rb.Col xs={3}>
+                        <rb.Input type='text' className="ignore" label='Starting clnum' onChange={this.props.onClnumChange} value={this.props.data.options.clnum} placeholder=''/>
+                    </rb.Col>
+                    <rb.Col xs={9}>
+                        {this.makeDisplay()}
+                    </rb.Col>
+                </rb.Panel>
+        </div>;
     }
 });
 
@@ -337,13 +344,12 @@ qira.sassApp = React.createClass({
         var symbolics = groupByType(this.state.symbolics);
         console.log(symbolics);
 
-        sassState.regs = _.map(symbolics.register, function(reg) { return reg.target });
+        sassState.regs = _.map(symbolics.register, function(reg) { return reg.target; });
         sassState.mem = _.map(symbolics.memory, function(mem) { return [parseInt(mem.target), mem.size]; });
 
         var constraints = groupByType(this.state.constraints);
         console.log(constraints);
         sassState.constraints = {registers: {}, memory: {}};
-        
 
         //We do not support this in the ui at this time.
         sassState.assist = {};
@@ -365,22 +371,27 @@ qira.sassApp = React.createClass({
         var constraintPanel = <qira.sassConstraintPanel
                 onDelete={this.handleConstraintDelete}
                 onAdd={this.onConstraintAdd}
-        constraints={this.state.constraints}/>;
-        
+                constraints={this.state.constraints}/>;
+
         var symbolicPanel = <qira.sassSymbolicPanel
                 onDelete={this.handleSymbolicDelete}
                 onAdd={this.onSymbolicAdd}
-        symbolics={this.state.symbolics}/>;
-        var solverPanel = <qira.sassSolverPanel data={this.state} onClnumChange={this.onClnumChange}
-                                                onStart={this.onSolverStart} onStop={this.onSolverStop}/>;
+                symbolics={this.state.symbolics}/>;
+
+        var solverPanel = <qira.sassSolverPanel
+                data={this.state}
+                onClnumChange={this.onClnumChange}
+                onStart={this.onSolverStart}
+                onStop={this.onSolverStop}/>;
+
         return (
             <div className="bs fill">
-  <rb.TabbedArea defaultActiveKey={1}>
-    <rb.TabPane eventKey={1} tab='Constraints'>{constraintPanel}</rb.TabPane>
-            <rb.TabPane eventKey={2} tab='Symbolics'>{symbolicPanel}</rb.TabPane>
-    <rb.TabPane eventKey={3} tab='Solver'>{solverPanel}</rb.TabPane>
-            </rb.TabbedArea>
-        </div>);
+                <rb.TabbedArea defaultActiveKey={1}>
+                    <rb.TabPane eventKey={1} tab='Constraints'>{constraintPanel}</rb.TabPane>
+                    <rb.TabPane eventKey={2} tab='Symbolics'>{symbolicPanel}</rb.TabPane>
+                    <rb.TabPane eventKey={3} tab='Solver'>{solverPanel}</rb.TabPane>
+                </rb.TabbedArea>
+            </div>);
   }
 });
 
