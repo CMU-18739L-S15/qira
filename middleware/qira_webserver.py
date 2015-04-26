@@ -391,6 +391,13 @@ def getregisters(forknum, clnum):
 
   emit('registers', ret)
 
+@socketio.on('startsolver', namespace='/qira')
+@socket_method
+def startsolver(forknum, clnum):
+  print("starting")
+  trace = program.traces[0]
+  sass = qira_analysis.SASS(trace, socketio, clnum)
+  sass.start()
 # ***** generic webserver stuff *****
 
 @app.route('/', defaults={'path': 'index.html'})
