@@ -392,8 +392,9 @@ class Trace:
 
         sys.path.append("tracers/bap_concolic/")
         from concolic_executor import satisfy_constraints
+        import json
         with open("tracers/bap_concolic/test_data","r") as f:
-          data = eval(f.read())
+          data = json.loads(f.read())
           print satisfy_constraints(self.program, data['start'], data['symbolic'], data['constraints'], data['assistance'])
 
         # hacky pin offset problem fix
