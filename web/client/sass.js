@@ -5,10 +5,6 @@ var rb = window.ReactBootstrap;
 qira.formatAddress = function(address, offset) {
     var pmaps = Session.get("pmaps");
 
-    if(pmaps === undefined) {
-        console.log("pmaps undefined");
-    }
-
     if(offset !== undefined) {
         var addressInt = parseInt(address) + parseInt(offset);
         address = "0x" + addressInt.toString(16);
@@ -40,14 +36,23 @@ qira.formatAddress = function(address, offset) {
 qira.sassAddConstraintModal = React.createClass({displayName: "sassAddConstraintModal",
     mixins: [React.addons.LinkedStateMixin],
     getInitialState: function() {
-        return {name: "", target: "", value:"", type:"memory"};
+        return {name: "", target: "", value:"", type:"memory", size: 4};
     },
     getForms: function() {
         if(this.state.type === "memory") {
             return (
                 React.createElement("div", null, 
-                    React.createElement(rb.Input, {type: "text", className: "ignore", label: "Address", valueLink: this.linkState('target'), placeholder: ""}), 
-                    React.createElement(rb.Input, {type: "text", className: "ignore", label: "Value", valueLink: this.linkState('value'), placeholder: ""})
+                    React.createElement("div", {className: "row"}, 
+                        React.createElement(rb.Col, {xs: 9}, 
+                            React.createElement(rb.Input, {type: "text", className: "ignore", label: "Address", valueLink: this.linkState('target'), placeholder: ""})
+                        ), 
+                        React.createElement(rb.Col, {xs: 3}, 
+                            React.createElement(rb.Input, {type: "number", className: "ignore", label: "Size", valueLink: this.linkState('size'), placeholder: ""})
+                        ), 
+                        React.createElement(rb.Col, {xs: 12}, 
+                            React.createElement(rb.Input, {type: "text", className: "ignore", label: "Value", valueLink: this.linkState('value'), placeholder: ""})
+                        )
+                    )
                 ));
         } else {
             return React.createElement("div", null, 
@@ -91,7 +96,9 @@ qira.sassConstraintPanel = React.createClass({displayName: "sassConstraintPanel"
     createMemoryConstraint: function(constraint) {
         var link = qira.formatAddress(constraint.target);
         var arrow = React.createElement("i", {className: "fa fa-long-arrow-right"});
-        return React.createElement("div", null, React.createElement(rb.Label, {bsStyle: "primary"}, "MEM"), " ", link, " ", arrow, " ", qira.formatAddress(constraint.value));
+        return React.createElement("div", null, React.createElement(rb.Label, {bsStyle: "primary"}, "MEM"), " ", link, " ", arrow, " ", qira.formatAddress(constraint.value), 
+            React.createElement(rb.Badge, {className: "pull-right"}, "Size: ", constraint.size)
+        );
     },
     createRegisterConstraint: function(constraint) {
         var link = React.createElement("span", {className: "register"}, constraint.target);
@@ -141,7 +148,7 @@ qira.sassAddSymbolicModal = React.createClass({displayName: "sassAddSymbolicModa
                     React.createElement(rb.Input, {type: "text", className: "ignore", label: "Address", valueLink: this.linkState('target'), placeholder: ""})
                 ), 
                 React.createElement(rb.Col, {xs: 3}, 
-                    React.createElement(rb.Input, {type: "text", className: "ignore", label: "Size", valueLink: this.linkState('size'), placeholder: ""})
+                    React.createElement(rb.Input, {type: "number", className: "ignore", label: "Size", valueLink: this.linkState('size'), placeholder: ""})
                 )
             );
         } else {
@@ -184,7 +191,11 @@ qira.sassSymbolicPanel = React.createClass({displayName: "sassSymbolicPanel",
     createMemorySymbolic: function(symbolic) {
         var link = qira.formatAddress(symbolic.target);
         var arrow = React.createElement("i", {className: "fa fa-long-arrow-right"});
-        return React.createElement("div", null, React.createElement(rb.Label, {bsStyle: "primary"}, "MEM"), " ", link, " ", arrow, " ", qira.formatAddress(symbolic.target, symbolic.size));
+        return (
+        React.createElement("div", null, 
+            React.createElement(rb.Label, {bsStyle: "primary"}, "MEM"), " ", link, " ", arrow, " ", qira.formatAddress(symbolic.target, symbolic.size), 
+            React.createElement(rb.Badge, {className: "pull-right"}, "Size: ", symbolic.size)
+        ));
     },
     createRegisterSymbolic: function(symbolic) {
         var link = React.createElement("span", {className: "register"}, symbolic.target);
@@ -252,7 +263,7 @@ qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
         if(solverStatus === "waiting") {
             return React.createElement("h2", null, "Waiting to begin.");
         } else if(solverStatus === "running") {
-            return React.createElement("h2", null, "Solving... ", React.createElement("i", {className: "fa fa-plus fa-spin"}));
+            return React.createElement("h2", null, "Solving... ", React.createElement("i", {className: "fa fa-spinner fa-spin"}));
         } else if(solverStatus === "results") {
             return React.createElement("h2", null, this.state.results);
         }
@@ -261,7 +272,8 @@ qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
         return React.createElement("div", {className: "bs"}, 
                 React.createElement(rb.Panel, {header: this.header()}, 
                     React.createElement(rb.Col, {xs: 3}, 
-                        React.createElement(rb.Input, {type: "text", className: "ignore", label: "Starting clnum", onChange: this.props.onClnumChange, value: this.props.data.options.clnum, placeholder: ""})
+                        React.createElement(rb.Input, {type: "text", className: "ignore", label: "Starting clnum", 
+                                  onChange: this.props.onClnumChange, value: this.props.data.options.clnum, placeholder: ""})
                     ), 
                     React.createElement(rb.Col, {xs: 9}, 
                         this.makeDisplay()
@@ -276,9 +288,9 @@ qira.sassApp = React.createClass({displayName: "sassApp",
         return {
             symbolics: [{name: "testa", type: "register", target: "RAX", size: 0},
                        {name: "testb", type: "memory", target: "0x40007ffea0", size: 16}],
-            constraints: [{name: "test1", type: "register", target: "RIP", value: "0x1337beef"},
-                          {name: "test2", type: "memory", target: "0x4005cc", value: "0xcoffee"},
-                          {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee"}],
+            constraints: [{name: "test1", type: "register", target: "RIP", value: "0x1337beef", size: 4},
+                          {name: "test2", type: "memory", target: "0x4005cc", value: "0xcoffee", size: 4},
+                          {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee13371337", size:8}],
             //We should eventually add threading, assists, etc. here
             options: {clnum: 0},
         };
