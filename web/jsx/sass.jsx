@@ -49,6 +49,10 @@ qira.sassAddConstraintModal = React.createClass({
             </div>
         }
     },
+    onAddThenClose: function(state) {
+        this.props.onAdd.bind(this, state)();
+        this.props.onRequestHide();
+    },
     render: function() {
         var registerOptions = Session.get("registers").map(function(register) {
             return <option value={register.name}>{register.name}</option>;
@@ -66,7 +70,7 @@ qira.sassAddConstraintModal = React.createClass({
         </div>
         <div className='modal-footer'>
         <rb.Button onClick={this.props.onRequestHide}>Close</rb.Button>
-        <rb.Button onClick={this.props.onAdd.bind(this, this.state)}>Add</rb.Button>
+        <rb.Button onClick={this.onAddThenClose.bind(this, this.state)}>Add</rb.Button>
         </div>
         </rb.Modal>;
     }
@@ -99,13 +103,17 @@ qira.sassConstraintPanel = React.createClass({
     },
     render: function() {
         var constraintItems = this.props.constraints.map(this.createConstraint);
-        return (<div className="bs">
+        if(constraintItems.length > 0) {
+            return (<div className="bs">
                 <rb.Panel header={this.header()}>
                 <ul className="list-group">
                 {constraintItems}
                 </ul>
                 </rb.Panel>
-                </div>);
+            </div>);
+        } else {
+            <p>To take advantage of the constraint solver add some constraints above.</p>
+        }
     }
 });
 
@@ -119,9 +127,11 @@ qira.sassApp = React.createClass({
     },
     handleConstraintDelete: function(constraint) {
         var newConstraints = _.reject(this.state.constraints, function (item) {
+            console.log(constraint);
+            console.log(item);
             return item == constraint;
         });
-
+        console.log(newConstraints);
         this.setState({constraints: newConstraints});
     },
     onConstraintAdd: function(constraint) {

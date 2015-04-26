@@ -49,6 +49,10 @@ qira.sassAddConstraintModal = React.createClass({displayName: "sassAddConstraint
             )
         }
     },
+    onAddThenClose: function(state) {
+        this.props.onAdd.bind(this, state)();
+        this.props.onRequestHide();
+    },
     render: function() {
         var registerOptions = Session.get("registers").map(function(register) {
             return React.createElement("option", {value: register.name}, register.name);
@@ -66,7 +70,7 @@ qira.sassAddConstraintModal = React.createClass({displayName: "sassAddConstraint
         ), 
         React.createElement("div", {className: "modal-footer"}, 
         React.createElement(rb.Button, {onClick: this.props.onRequestHide}, "Close"), 
-        React.createElement(rb.Button, {onClick: this.props.onAdd.bind(this, this.state)}, "Add")
+        React.createElement(rb.Button, {onClick: this.onAddThenClose.bind(this, this.state)}, "Add")
         )
         );
     }
@@ -99,13 +103,17 @@ qira.sassConstraintPanel = React.createClass({displayName: "sassConstraintPanel"
     },
     render: function() {
         var constraintItems = this.props.constraints.map(this.createConstraint);
-        return (React.createElement("div", {className: "bs"}, 
+        if(constraintItems.length > 0) {
+            return (React.createElement("div", {className: "bs"}, 
                 React.createElement(rb.Panel, {header: this.header()}, 
                 React.createElement("ul", {className: "list-group"}, 
                 constraintItems
                 )
                 )
-                ));
+            ));
+        } else {
+            React.createElement("p", null, "To take advantage of the constraint solver add some constraints above.")
+        }
     }
 });
 
@@ -119,9 +127,11 @@ qira.sassApp = React.createClass({displayName: "sassApp",
     },
     handleConstraintDelete: function(constraint) {
         var newConstraints = _.reject(this.state.constraints, function (item) {
+            console.log(constraint);
+            console.log(item);
             return item == constraint;
         });
-
+        console.log(newConstraints);
         this.setState({constraints: newConstraints});
     },
     onConstraintAdd: function(constraint) {
