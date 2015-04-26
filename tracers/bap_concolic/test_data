@@ -1,12 +1,27 @@
 {
- "start":125,
- "regs": [],
-  "mem": [(0xf6fff3ac, 32)],
-  "constraints": {
-    "registers": {"EIP":0x80486ab},
-    "memory": {}
+  "start":134,
+  "symbolic": {
+    "registers": [],
+    "memory": [{
+      "address": 0xf6fff3bc,
+      "size": 32
+    }],
   },
-  "assist": {
-    "halt": {}#"EIP": 0x80486c1}
+  "constraints": {
+    "registers": [{
+      "name": "EIP",
+      "value": 0x8048856
+    }],
+    "memory": []
+  },
+  "assistance": {
+    "halt_constraints": {
+      "registers": [],
+      "memory": [{
+        "address": 0xf6fff3b0,
+        "size": 4,
+        "value": 0
+      }]
+    }
   }
 }

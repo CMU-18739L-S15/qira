@@ -6,6 +6,7 @@ from functools import partial
 from model import BapInsn
 from bitvector import ConcreteBitVector, SymbolicBitVector
 from copy import copy
+from random import randint
 import collections
 import z3
 
@@ -210,11 +211,15 @@ class ConcolicExecutor(adt.Visitor):
         # If we can't predict the right branch, fork and take both
         # Note: the order below matters to maintain forks correctly
         # TODO: refactor forking
+        if randint(0,1) == 0:
+          condval, take, other = 1, op.true, op.false
+        else:
+          condval, take, other = 0, op.false, op.true
         state_copy = self.state.get_copy()
-        fork = ConcolicExecutor(state_copy, self.pc, constraints=self.constraints + [cond == 1])
-        fork.run_on_all_forks(op.true)
-        self.constraints.append(cond == 0)
-        self.run_on_all_forks(op.false)
+        fork = ConcolicExecutor(state_copy, self.pc, constraints=self.constraints + [cond == condval])
+        fork.run_on_all_forks(take)
+        self.constraints.append(cond == (1 - condval))
+        self.run_on_all_forks(other)
         self.forks.append(fork)
     else:
       if cond == 1:
@@ -440,7 +445,7 @@ def validate_bil(program, flow):
 
   return (errors, warnings)
 
-def satisfy_constraints(program, start_clnum, symbolic_registers, symbolic_memory, user_constraints, assistance):
+def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance):
   """
   Runs the concolic executor from a starting clnum, attempting to satisfy the contraints list.
   Uses concrete values for everything but the specified registers and memory addresses.
@@ -454,7 +459,7 @@ def satisfy_constraints(program, start_clnum, symbolic_registers, symbolic_memor
   initial_regs = dict(zip(registers, map(lambda x: ConcreteBitVector(regsize, x), trace.db.fetch_registers(start_clnum))))
 
   # add symbolic registers
-  for register in symbolic_registers:
+  for register in symbolic['registers']:
     rs = [SymbolicBitVector(8, z3.BitVec(register+str(i), 8)) for i in range(regsize / 8)]
     r = rs[0]
     for rp in rs[1:]:
@@ -463,8 +468,9 @@ def satisfy_constraints(program, start_clnum, symbolic_registers, symbolic_memor
 
   # add symbolic memory
   initial_mem = {}
-  for (address, length) in symbolic_memory:
-    for addr in range(address, address+length):
+  for entry in symbolic['memory']:
+    address, size = entry['address'], entry['size']
+    for addr in range(address, address+size):
       b = z3.BitVec("mem_{}".format(hex(addr)), 8)
       initial_mem[addr] = SymbolicBitVector(8, b)
 
@@ -478,24 +484,33 @@ def satisfy_constraints(program, start_clnum, symbolic_registers, symbolic_memor
     executor = executors.pop(0)
     while True:
       # use the assistance
-      for key, val in assistance['halt'].items():
-        stateval = executor.state[key]
+      for entry in assistance['halt_constraints']['registers']:
+        name, value = entry['name'], entry['value']
+        stateval = executor.state[name]
         if isinstance(stateval, ConcreteBitVector):
-          if stateval == val:
+          if stateval == value:
             print "Assistance says to halt here. Switching fork."
-            executor = executors.pop(len(executors)-1)
+            executor = executors.pop(randint(0, len(executors)-1))
+            continue
+      for entry in assistance['halt_constraints']['memory']:
+        address, size, value = entry['address'], entry['size'], entry['value']
+        stateval = executor.state.get_mem(address, size)
+        if isinstance(stateval, ConcreteBitVector):
+          if stateval == value:
+            print "Assistance says to halt here. Switching fork."
+            executor = executors.pop(randint(0, len(executors)-1))
             continue
 
       # let's try to solve
       s = z3.Solver()
 
       # add user contraints on registers
-      for key, value in user_constraints['registers'].items():
-        s.add(executor.state[key] == value)
+      for entry in constraints['registers']:
+        s.add(executor.state[entry['name']] == entry['value'])
 
       # add user constraints on memory
-      for key, (size, value) in user_constraints['memory'].items():
-        s.add(executor.state.get_mem(int(key, 16), size) == value)
+      for entry in constraints['memory']:
+        s.add(executor.state.get_mem(entry['address'], entry['size']) == entry['value'])
 
       # add constraints accumulated from this execution path
       for constraint in executor.constraints:
@@ -512,16 +527,23 @@ def satisfy_constraints(program, start_clnum, symbolic_registers, symbolic_memor
       # If BAP can't handle the instruction, let's stop
       if not isinstance(instr, BapInsn):
         print "Bad Instruction. Switching fork."
-        executor = executors.pop(len(executors)-1)
+        executor = executors.pop(randint(0, len(executors)-1))
         continue
 
       bil_instrs = instr.insn.bil
 
+      old_pc = executor.state[PC]
       try:
-        executor.run_on_all_forks(bil_instrs)
+        try:
+          executor.run_on_all_forks(bil_instrs)
+        except VariableException as e:
+          if e.args[0] == "GS_BASE":
+            pass # this happens on stack canary checks
+          else:
+            raise e
       except Exception as e:
         print "Error during symbolic execution. Switching fork."
-        executor = executors.pop(len(executors)-1)
+        executor = executors.pop(randint(0, len(executors)-1))
         continue
 
       # For each fork, step the PC.
@@ -534,6 +556,7 @@ def satisfy_constraints(program, start_clnum, symbolic_registers, symbolic_memor
       # Gather the forks
       executors += executor.forks
       executor.forks = []
+      print len(executors)
 
   except IndexError as e:
     print "No forks left => UNSAT"
