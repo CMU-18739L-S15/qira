@@ -3,14 +3,14 @@
   "symbolic": {
     "registers": [],
     "memory": [{
-      "address": 4143969212, // 0xf6fff3bc
+      "address": 0xf6fff3bc,
       "size": 32
     }],
   },
   "constraints": {
     "registers": [{
       "name": "EIP",
-      "value": 134514774 //0x8048856
+      "value": 0x8048856
     }],
     "memory": []
   },
@@ -18,7 +18,7 @@
     "halt_constraints": {
       "registers": [],
       "memory": [{
-        "address": 4143969200, //0xf6fff3b0
+        "address": 0xf6fff3b0,
         "size": 4,
         "value": 0
       }]

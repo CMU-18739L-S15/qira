@@ -7,10 +7,10 @@
   "constraints": {
     "registers": [{
       "name": "EIP",
-      "value": 134512750 //0x804806e
+      "value": 0x804806e
     },{
       "name": "EAX",
-      "value": 322417471 //0x1337b33f
+      "value": 0x1337b33f
     }],
     "memory": []
   },
