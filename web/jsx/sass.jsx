@@ -214,6 +214,46 @@ qira.sassSymbolicPanel = React.createClass({
     }
 });
 
+qira.sassSolverPanel = React.createClass({
+    getInitialState: function() {
+        return {stream: undefined, status: "waiting"};
+    },
+    header: function () {
+        var modal = <qira.sassAddSymbolicModal container={this} onAdd={this.props.onAdd}/>;
+        var buttons = <rb.ButtonToolbar className="pull-right">
+        <rb.Button bsSize="xsmall" onClick={this.props.onStart.bind(this, this.state.stream)} bsStyle="success">Start</rb.Button>
+        <rb.Button bsSize="xsmall" onClick={this.props.onStop.bind(this, this.state.stream)} bsStyle='primary'>Stop</rb.Button>
+        </rb.ButtonToolbar>;
+
+        return (<h4 className="panel-title">
+             Symbolic Solver {buttons}
+                </h4>);
+    },
+    componentDidMount: function() {
+        this.setState({stream: io.connect(STREAM_URL), status: "stopped"});
+    },
+    makeDisplay: function() {
+        var solverStatus = this.props.data.status;
+        if(solverStatus === "waiting") {
+            return <h2>Waiting to begin.</h2>;
+        } else if(solverStatus === "running") {
+            return <h2>Solving... <i className="fa fa-plus fa-spin"></i></h2>;
+        }
+    },
+    render: function() {
+        return (<div className="bs">
+                <rb.Panel header={this.header()}>
+                  <rb.Col xs={3}>
+            <rb.Input type='text' className="ignore" label='Starting clnum' onChange={this.props.onClnumChange} value={this.props.data.options.clnum} placeholder=''/>
+            </rb.Col>
+            <rb.Col xs={9}>
+              {this.makeDisplay()}
+            </rb.Col>
+                  </rb.Panel>
+            </div>);
+    }
+});
+
 qira.sassApp = React.createClass({
     getInitialState: function() {
         return {
@@ -221,7 +261,10 @@ qira.sassApp = React.createClass({
                        {name: "testb", type: "memory", target: "0x40007ffea0", size: 16}],
             constraints: [{name: "test1", type: "register", target: "RIP", value: "0x1337beef"},
                           {name: "test2", type: "memory", target: "0x4005cc", value: "0xcoffee"},
-                          {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee"}]
+                          {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee"}],
+            //We should eventually add threading, assists, etc. here
+            options: {clnum: 0},
+            status: "waiting"
         };
     },
     handleConstraintDelete: function(constraint) {
@@ -248,6 +291,12 @@ qira.sassApp = React.createClass({
         });
         this.setState({symbolics: newSymbolics});
     },
+    onClnumChange: function(e) {
+        var newState = React.addons.update(this.state, {
+            options: {clnum: {$set: e.target.value}}
+        });
+        this.setState(newState);
+    },
     onSymbolicAdd: function(symbolic) {
         // Right now we are only supporting concrete values.
         // However, in the future, we should not enforce uniqueness
@@ -260,22 +309,41 @@ qira.sassApp = React.createClass({
         var newSymbolics = this.state.symbolics.concat(symbolic);
         this.setState({symbolics: newSymbolics});
     },
+    onSolverStart: function(stream) {
+        console.log("starting solver");
+        var newState = React.addons.update(this.state, {
+            status: {$set: "running"}
+        });
+        this.setState(newState);
+    },
+    onSolverStop: function(stream) {
+        console.log("stopping solver");
+        var newState = React.addons.update(this.state, {
+            status: {$set: "waiting"}
+        });
+        this.setState(newState);
+    },
     render: function() {
-        return (
-            <div className="bs fill">
-                <rb.Col xs={4} className="fill">
-                <qira.sassConstraintPanel
+        var constraintPanel = <qira.sassConstraintPanel
                 onDelete={this.handleConstraintDelete}
                 onAdd={this.onConstraintAdd}
-                constraints={this.state.constraints}/>
-            </rb.Col>
-                <rb.Col xs={4} className="fill">
-                <qira.sassSymbolicPanel
+        constraints={this.state.constraints}/>;
+        
+        var symbolicPanel = <qira.sassSymbolicPanel
                 onDelete={this.handleSymbolicDelete}
                 onAdd={this.onSymbolicAdd}
-                symbolics={this.state.symbolics}/>
-                </rb.Col>
-            </div>);
-    }
+        symbolics={this.state.symbolics}/>;
+        
+        var solverPanel = <qira.sassSolverPanel data={this.state} onClnumChange={this.onClnumChange}
+                                                onStart={this.onSolverStart} onStop={this.onSolverStop}/>;
+        return (
+            <div className="bs fill">
+  <rb.TabbedArea defaultActiveKey={1}>
+    <rb.TabPane eventKey={1} tab='Constraints'>{constraintPanel}</rb.TabPane>
+            <rb.TabPane eventKey={2} tab='Symbolics'>{symbolicPanel}</rb.TabPane>
+    <rb.TabPane eventKey={3} tab='Solver'>{solverPanel}</rb.TabPane>
+            </rb.TabbedArea>
+        </div>);
+  }
 });
 

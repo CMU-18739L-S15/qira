@@ -214,6 +214,46 @@ qira.sassSymbolicPanel = React.createClass({displayName: "sassSymbolicPanel",
     }
 });
 
+qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
+    getInitialState: function() {
+        return {stream: undefined, status: "waiting"};
+    },
+    header: function () {
+        var modal = React.createElement(qira.sassAddSymbolicModal, {container: this, onAdd: this.props.onAdd});
+        var buttons = React.createElement(rb.ButtonToolbar, {className: "pull-right"}, 
+        React.createElement(rb.Button, {bsSize: "xsmall", onClick: this.props.onStart.bind(this, this.state.stream), bsStyle: "success"}, "Start"), 
+        React.createElement(rb.Button, {bsSize: "xsmall", onClick: this.props.onStop.bind(this, this.state.stream), bsStyle: "primary"}, "Stop")
+        );
+
+        return (React.createElement("h4", {className: "panel-title"}, 
+             "Symbolic Solver ", buttons
+                ));
+    },
+    componentDidMount: function() {
+        this.setState({stream: io.connect(STREAM_URL), status: "stopped"});
+    },
+    makeDisplay: function() {
+        var solverStatus = this.props.data.status;
+        if(solverStatus === "waiting") {
+            return React.createElement("h2", null, "Waiting to begin.");
+        } else if(solverStatus === "running") {
+            return React.createElement("h2", null, "Solving... ", React.createElement("i", {className: "fa fa-plus fa-spin"}));
+        }
+    },
+    render: function() {
+        return (React.createElement("div", {className: "bs"}, 
+                React.createElement(rb.Panel, {header: this.header()}, 
+                  React.createElement(rb.Col, {xs: 3}, 
+            React.createElement(rb.Input, {type: "text", className: "ignore", label: "Starting clnum", onChange: this.props.onClnumChange, value: this.props.data.options.clnum, placeholder: ""})
+            ), 
+            React.createElement(rb.Col, {xs: 9}, 
+              this.makeDisplay()
+            )
+                  )
+            ));
+    }
+});
+
 qira.sassApp = React.createClass({displayName: "sassApp",
     getInitialState: function() {
         return {
@@ -221,7 +261,10 @@ qira.sassApp = React.createClass({displayName: "sassApp",
                        {name: "testb", type: "memory", target: "0x40007ffea0", size: 16}],
             constraints: [{name: "test1", type: "register", target: "RIP", value: "0x1337beef"},
                           {name: "test2", type: "memory", target: "0x4005cc", value: "0xcoffee"},
-                          {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee"}]
+                          {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee"}],
+            //We should eventually add threading, assists, etc. here
+            options: {clnum: 0},
+            status: "waiting"
         };
     },
     handleConstraintDelete: function(constraint) {
@@ -248,6 +291,12 @@ qira.sassApp = React.createClass({displayName: "sassApp",
         });
         this.setState({symbolics: newSymbolics});
     },
+    onClnumChange: function(e) {
+        var newState = React.addons.update(this.state, {
+            options: {clnum: {$set: e.target.value}}
+        });
+        this.setState(newState);
+    },
     onSymbolicAdd: function(symbolic) {
         // Right now we are only supporting concrete values.
         // However, in the future, we should not enforce uniqueness
@@ -260,22 +309,41 @@ qira.sassApp = React.createClass({displayName: "sassApp",
         var newSymbolics = this.state.symbolics.concat(symbolic);
         this.setState({symbolics: newSymbolics});
     },
+    onSolverStart: function(stream) {
+        console.log("starting solver");
+        var newState = React.addons.update(this.state, {
+            status: {$set: "running"}
+        });
+        this.setState(newState);
+    },
+    onSolverStop: function(stream) {
+        console.log("stopping solver");
+        var newState = React.addons.update(this.state, {
+            status: {$set: "waiting"}
+        });
+        this.setState(newState);
+    },
     render: function() {
-        return (
-            React.createElement("div", {className: "bs fill"}, 
-                React.createElement(rb.Col, {xs: 4, className: "fill"}, 
-                React.createElement(qira.sassConstraintPanel, {
+        var constraintPanel = React.createElement(qira.sassConstraintPanel, {
                 onDelete: this.handleConstraintDelete, 
                 onAdd: this.onConstraintAdd, 
-                constraints: this.state.constraints})
-            ), 
-                React.createElement(rb.Col, {xs: 4, className: "fill"}, 
-                React.createElement(qira.sassSymbolicPanel, {
+        constraints: this.state.constraints});
+        
+        var symbolicPanel = React.createElement(qira.sassSymbolicPanel, {
                 onDelete: this.handleSymbolicDelete, 
                 onAdd: this.onSymbolicAdd, 
-                symbolics: this.state.symbolics})
-                )
-            ));
-    }
+        symbolics: this.state.symbolics});
+        
+        var solverPanel = React.createElement(qira.sassSolverPanel, {data: this.state, onClnumChange: this.onClnumChange, 
+                                                onStart: this.onSolverStart, onStop: this.onSolverStop});
+        return (
+            React.createElement("div", {className: "bs fill"}, 
+  React.createElement(rb.TabbedArea, {defaultActiveKey: 1}, 
+    React.createElement(rb.TabPane, {eventKey: 1, tab: "Constraints"}, constraintPanel), 
+            React.createElement(rb.TabPane, {eventKey: 2, tab: "Symbolics"}, symbolicPanel), 
+    React.createElement(rb.TabPane, {eventKey: 3, tab: "Solver"}, solverPanel)
+            )
+        ));
+  }
 });
 
