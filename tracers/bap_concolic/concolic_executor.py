@@ -458,9 +458,18 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
   initial_mem_get = partial(trace.fetch_raw_memory, start_clnum)
   initial_regs = dict(zip(registers, map(lambda x: ConcreteBitVector(regsize, x), trace.db.fetch_registers(start_clnum))))
 
+  # store the z3 bitvecs that we make
+  bitvecs = {}
+
   # add symbolic registers
   for register in symbolic['registers']:
-    rs = [SymbolicBitVector(8, z3.BitVec(register+str(i), 8)) for i in range(regsize / 8)]
+    rs = []
+    for i in range(regsize / 8):
+      name = register+str(i)
+      bv = z3.BitVec(name, 8)
+      rs.append(SymbolicBitVector(8, bv))
+      bitvecs[name] = bv
+
     r = rs[0]
     for rp in rs[1:]:
       r = r.concat(rp)
@@ -471,7 +480,9 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
   for entry in symbolic['memory']:
     address, size = entry['address'], entry['size']
     for addr in range(address, address+size):
-      b = z3.BitVec("mem_{}".format(hex(addr)), 8)
+      name = "mem_{}".format(hex(addr))
+      b = z3.BitVec(name, 8)
+      bitvecs[name] = b
       initial_mem[addr] = SymbolicBitVector(8, b)
 
   start_state = State(initial_regs, initial_mem_get, initial_mem)
@@ -518,7 +529,32 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
 
       # Try to solve
       if s.check().r == 1:
-        return True, s.model()
+        model = s.model()
+        result = {"registers": [], "memory": []}
+
+        # we have a solution, return it in a reasonable format
+        for register in symbolic['registers']:
+          value = None
+          for i in range(0, regsize / 8):
+            name = register+str(i)
+            bv = bitvecs[name]
+            if model[bv] != None:
+              if value is None:
+                value = 0
+              byteval = int(str(model[bv])) << (regsize - 8*(i + 1))
+              value |= byteval
+          result['registers'].append({"name": register, "value": value})
+
+        for entry in symbolic['memory']:
+          for address in range(entry['address'], entry['address']+entry['size']):
+            bvname = "mem_{}".format(hex(address))
+            bv = bitvecs[bvname]
+            value = None
+            if model[bv] != None:
+              value = int(str(model[bv]))
+            result['memory'].append({"address": address, "size":1, "value":value})
+
+        return True, result
 
       # If we failed, let's run an instruction
       pc_value = int(executor.state[PC])
@@ -556,8 +592,7 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
       # Gather the forks
       executors += executor.forks
       executor.forks = []
-      print len(executors)
 
-  except IndexError as e:
+  except ValueError as e:
     print "No forks left => UNSAT"
     return False, None

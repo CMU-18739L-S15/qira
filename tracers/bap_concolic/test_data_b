@@ -1,0 +1,23 @@
+{
+  "start":4,
+  "symbolic": {
+    "registers": ["EAX", "ECX"],
+    "memory": [],
+  },
+  "constraints": {
+    "registers": [{
+      "name": "EIP",
+      "value": 0x804806e
+    },{
+      "name": "EAX",
+      "value": 0x1337b33f
+    }],
+    "memory": []
+  },
+  "assistance": {
+    "halt_constraints": {
+      "registers": [],
+      "memory": []
+    }
+  }
+}
