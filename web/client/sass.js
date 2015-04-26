@@ -13,7 +13,7 @@ qira.formatAddress = function(address, offset) {
         var addressInt = parseInt(address) + parseInt(offset);
         address = "0x" + addressInt.toString(16);
     }
-    
+
     var mapAddresses = _.keys(pmaps);
     var ranges = _.sortBy(_.map(mapAddresses, function(addr) {
         return {label: addr, value: parseInt(addr)};
@@ -44,14 +44,15 @@ qira.sassAddConstraintModal = React.createClass({displayName: "sassAddConstraint
     },
     getForms: function() {
         if(this.state.type === "memory") {
-            return React.createElement("div", null, 
-            React.createElement(rb.Input, {type: "text", className: "ignore", label: "Address", valueLink: this.linkState('target'), placeholder: ""}), 
-            React.createElement(rb.Input, {type: "text", className: "ignore", label: "Value", valueLink: this.linkState('value'), placeholder: ""})
-            )
+            return (
+                React.createElement("div", null, 
+                    React.createElement(rb.Input, {type: "text", className: "ignore", label: "Address", valueLink: this.linkState('target'), placeholder: ""}), 
+                    React.createElement(rb.Input, {type: "text", className: "ignore", label: "Value", valueLink: this.linkState('value'), placeholder: ""})
+                ));
         } else {
             return React.createElement("div", null, 
             React.createElement(rb.Input, {type: "text", className: "ignore", label: "Value", valueLink: this.linkState('value'), placeholder: ""})
-            )
+            );
         }
     },
     onAddThenClose: function(state) {
@@ -62,21 +63,21 @@ qira.sassAddConstraintModal = React.createClass({displayName: "sassAddConstraint
         var registerOptions = Session.get("registers").map(function(register) {
             return React.createElement("option", {value: register.name}, register.name);
         });
-        
+
         return React.createElement(rb.Modal, React.__spread({},  this.props, {className: "bs", bsStyle: "primary", title: "Add a constraint", animation: false}), 
-        React.createElement("div", {className: "modal-body"}, 
-        React.createElement("form", null, 
-        React.createElement(rb.Input, {type: "select", label: "Constraint type", valueLink: this.linkState('type')}, 
-        React.createElement("option", {value: "memory", selected: true}, "Memory"), 
-        registerOptions
-        ), 
-        this.getForms()
-        )
-        ), 
-        React.createElement("div", {className: "modal-footer"}, 
-        React.createElement(rb.Button, {onClick: this.props.onRequestHide}, "Close"), 
-        React.createElement(rb.Button, {onClick: this.onAddThenClose.bind(this, this.state)}, "Add")
-        )
+                React.createElement("div", {className: "modal-body"}, 
+                    React.createElement("form", null, 
+                        React.createElement(rb.Input, {type: "select", label: "Constraint type", valueLink: this.linkState('type')}, 
+                            React.createElement("option", {value: "memory", selected: true}, "Memory"), 
+                            registerOptions
+                        ), 
+                        this.getForms()
+                    )
+                ), 
+                React.createElement("div", {className: "modal-footer"}, 
+                    React.createElement(rb.Button, {onClick: this.props.onRequestHide}, "Close"), 
+                    React.createElement(rb.Button, {onClick: this.onAddThenClose.bind(this, this.state)}, "Add")
+                )
         );
     }
 });
@@ -99,28 +100,31 @@ qira.sassConstraintPanel = React.createClass({displayName: "sassConstraintPanel"
     },
     header: function () {
         var modal = React.createElement(qira.sassAddConstraintModal, {container: this, onAdd: this.props.onAdd});
-        
+
         var addButton = React.createElement("div", {className: "modal-container pull-right"}, 
-        React.createElement(rb.ModalTrigger, {modal: modal, container: this}, 
-        React.createElement(rb.Button, {bsSize: "xsmall"}, React.createElement("i", {className: "fa fa-plus"}))
-        ));
-        
-        return (React.createElement("h4", {className: "panel-title"}, 
-             "Constraints ", addButton
-                ));
+            React.createElement(rb.ModalTrigger, {modal: modal, container: this}, 
+                React.createElement(rb.Button, {bsSize: "xsmall"}, React.createElement("i", {className: "fa fa-plus"}))
+            ));
+
+        return (
+            React.createElement("h4", {className: "panel-title"}, 
+                "Constraints ", addButton
+            ));
     },
     render: function() {
         var constraintItems = this.props.constraints.map(this.createConstraint);
-        
-        if(constraintItems.length == 0) {
+
+        if(constraintItems.length === 0) {
            constraintItems = React.createElement("p", null, "To take advantage of the constraint solver add some constraints above.");
         }
-        return (React.createElement("div", {className: "bs"}, 
-                  React.createElement(rb.Panel, {header: this.header()}, 
-                  React.createElement("ul", {className: "list-group"}, 
-                  constraintItems
-                  )
-                  )
+
+        return (
+            React.createElement("div", {className: "bs"}, 
+                React.createElement(rb.Panel, {header: this.header()}, 
+                    React.createElement("ul", {className: "list-group"}, 
+                        constraintItems
+                    )
+                )
             ));
     }
 });
@@ -133,15 +137,15 @@ qira.sassAddSymbolicModal = React.createClass({displayName: "sassAddSymbolicModa
     getForms: function() {
         if(this.state.type === "memory") {
             return React.createElement("div", {className: "row"}, 
-            React.createElement(rb.Col, {xs: 9}, 
-            React.createElement(rb.Input, {type: "text", className: "ignore", label: "Address", valueLink: this.linkState('target'), placeholder: ""})
-            ), 
-            React.createElement(rb.Col, {xs: 3}, 
-            React.createElement(rb.Input, {type: "text", className: "ignore", label: "Size", valueLink: this.linkState('size'), placeholder: ""})
-            )
-            )
+                React.createElement(rb.Col, {xs: 9}, 
+                    React.createElement(rb.Input, {type: "text", className: "ignore", label: "Address", valueLink: this.linkState('target'), placeholder: ""})
+                ), 
+                React.createElement(rb.Col, {xs: 3}, 
+                    React.createElement(rb.Input, {type: "text", className: "ignore", label: "Size", valueLink: this.linkState('size'), placeholder: ""})
+                )
+            );
         } else {
-            return React.createElement("div", null); 
+            return React.createElement("div", null);
         }
     },
     onAddThenClose: function(state) {
@@ -152,21 +156,21 @@ qira.sassAddSymbolicModal = React.createClass({displayName: "sassAddSymbolicModa
         var registerOptions = Session.get("registers").map(function(register) {
             return React.createElement("option", {value: register.name}, register.name);
         });
-        
+
         return React.createElement(rb.Modal, React.__spread({},  this.props, {className: "bs", bsStyle: "primary", title: "Add a symbolic value", animation: false}), 
-        React.createElement("div", {className: "modal-body"}, 
-        React.createElement("form", null, 
-        React.createElement(rb.Input, {type: "select", label: "Symbolic type", valueLink: this.linkState('type')}, 
-        React.createElement("option", {value: "memory", selected: true}, "Memory"), 
-        registerOptions
-        ), 
-        this.getForms()
-        )
-        ), 
-        React.createElement("div", {className: "modal-footer"}, 
-        React.createElement(rb.Button, {onClick: this.props.onRequestHide}, "Close"), 
-        React.createElement(rb.Button, {onClick: this.onAddThenClose.bind(this, this.state)}, "Add")
-        )
+                React.createElement("div", {className: "modal-body"}, 
+                    React.createElement("form", null, 
+                        React.createElement(rb.Input, {type: "select", label: "Symbolic type", valueLink: this.linkState('type')}, 
+                            React.createElement("option", {value: "memory", selected: true}, "Memory"), 
+                            registerOptions
+                        ), 
+                        this.getForms()
+                    )
+                ), 
+                React.createElement("div", {className: "modal-footer"}, 
+                    React.createElement(rb.Button, {onClick: this.props.onRequestHide}, "Close"), 
+                    React.createElement(rb.Button, {onClick: this.onAddThenClose.bind(this, this.state)}, "Add")
+                )
         );
     }
 });
@@ -188,28 +192,29 @@ qira.sassSymbolicPanel = React.createClass({displayName: "sassSymbolicPanel",
     },
     header: function () {
         var modal = React.createElement(qira.sassAddSymbolicModal, {container: this, onAdd: this.props.onAdd});
-        
+
         var addButton = React.createElement("div", {className: "modal-container pull-right"}, 
-        React.createElement(rb.ModalTrigger, {modal: modal, container: this}, 
-        React.createElement(rb.Button, {bsSize: "xsmall"}, React.createElement("i", {className: "fa fa-plus"}))
-        ));
-        
+            React.createElement(rb.ModalTrigger, {modal: modal, container: this}, 
+                React.createElement(rb.Button, {bsSize: "xsmall"}, React.createElement("i", {className: "fa fa-plus"}))
+            ));
+
         return (React.createElement("h4", {className: "panel-title"}, 
              "Symbolic ", addButton
                 ));
     },
     render: function() {
         var symbolicItems = this.props.symbolics.map(this.createSymbolic);
-        
-        if(symbolicItems.length == 0) {
+
+        if(symbolicItems.length === 0) {
            symbolicItems = React.createElement("p", null, "To take advantage of the symbolic solver add some symbolics regions above.");
         }
-        return (React.createElement("div", {className: "bs"}, 
-                  React.createElement(rb.Panel, {header: this.header()}, 
-                  React.createElement("ul", {className: "list-group"}, 
-                  symbolicItems
-                  )
-                  )
+        return (
+            React.createElement("div", {className: "bs"}, 
+                React.createElement(rb.Panel, {header: this.header()}, 
+                    React.createElement("ul", {className: "list-group"}, 
+                        symbolicItems
+                    )
+                )
             ));
     }
 });
@@ -220,14 +225,16 @@ qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
     },
     header: function () {
         var modal = React.createElement(qira.sassAddSymbolicModal, {container: this, onAdd: this.props.onAdd});
-        var buttons = React.createElement(rb.ButtonToolbar, {className: "pull-right"}, 
-        React.createElement(rb.Button, {bsSize: "xsmall", onClick: this.props.onStart.bind(this, this.state.stream), bsStyle: "success"}, "Start"), 
-        React.createElement(rb.Button, {bsSize: "xsmall", onClick: this.props.onStop.bind(this, this.state.stream), bsStyle: "primary"}, "Stop")
+        var buttons =
+        React.createElement(rb.ButtonToolbar, {className: "pull-right"}, 
+                React.createElement(rb.Button, {bsSize: "xsmall", onClick: this.props.onStart.bind(this, this.state.stream), bsStyle: "success"}, "Start"), 
+                React.createElement(rb.Button, {bsSize: "xsmall", onClick: this.props.onStop.bind(this, this.state.stream), bsStyle: "primary"}, "Stop")
         );
 
-        return (React.createElement("h4", {className: "panel-title"}, 
-             "Symbolic Solver ", buttons
-                ));
+        return (
+            React.createElement("h4", {className: "panel-title"}, 
+                "Symbolic Solver ", buttons
+            ));
     },
     componentDidMount: function() {
         var newState = {stream: io.connect(STREAM_URL), status: "waiting"};
@@ -247,20 +254,20 @@ qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
         } else if(solverStatus === "running") {
             return React.createElement("h2", null, "Solving... ", React.createElement("i", {className: "fa fa-plus fa-spin"}));
         } else if(solverStatus === "results") {
-            return React.createElement("h2", null, this.state.results)
+            return React.createElement("h2", null, this.state.results);
         }
     },
     render: function() {
-        return (React.createElement("div", {className: "bs"}, 
+        return React.createElement("div", {className: "bs"}, 
                 React.createElement(rb.Panel, {header: this.header()}, 
-                  React.createElement(rb.Col, {xs: 3}, 
-            React.createElement(rb.Input, {type: "text", className: "ignore", label: "Starting clnum", onChange: this.props.onClnumChange, value: this.props.data.options.clnum, placeholder: ""})
-            ), 
-            React.createElement(rb.Col, {xs: 9}, 
-              this.makeDisplay()
-            )
-                  )
-            ));
+                    React.createElement(rb.Col, {xs: 3}, 
+                        React.createElement(rb.Input, {type: "text", className: "ignore", label: "Starting clnum", onChange: this.props.onClnumChange, value: this.props.data.options.clnum, placeholder: ""})
+                    ), 
+                    React.createElement(rb.Col, {xs: 9}, 
+                        this.makeDisplay()
+                    )
+                )
+        );
     }
 });
 
@@ -337,13 +344,12 @@ qira.sassApp = React.createClass({displayName: "sassApp",
         var symbolics = groupByType(this.state.symbolics);
         console.log(symbolics);
 
-        sassState.regs = _.map(symbolics.register, function(reg) { return reg.target });
+        sassState.regs = _.map(symbolics.register, function(reg) { return reg.target; });
         sassState.mem = _.map(symbolics.memory, function(mem) { return [parseInt(mem.target), mem.size]; });
 
         var constraints = groupByType(this.state.constraints);
         console.log(constraints);
         sassState.constraints = {registers: {}, memory: {}};
-        
 
         //We do not support this in the ui at this time.
         sassState.assist = {};
@@ -365,22 +371,27 @@ qira.sassApp = React.createClass({displayName: "sassApp",
         var constraintPanel = React.createElement(qira.sassConstraintPanel, {
                 onDelete: this.handleConstraintDelete, 
                 onAdd: this.onConstraintAdd, 
-        constraints: this.state.constraints});
-        
+                constraints: this.state.constraints});
+
         var symbolicPanel = React.createElement(qira.sassSymbolicPanel, {
                 onDelete: this.handleSymbolicDelete, 
                 onAdd: this.onSymbolicAdd, 
-        symbolics: this.state.symbolics});
-        var solverPanel = React.createElement(qira.sassSolverPanel, {data: this.state, onClnumChange: this.onClnumChange, 
-                                                onStart: this.onSolverStart, onStop: this.onSolverStop});
+                symbolics: this.state.symbolics});
+
+        var solverPanel = React.createElement(qira.sassSolverPanel, {
+                data: this.state, 
+                onClnumChange: this.onClnumChange, 
+                onStart: this.onSolverStart, 
+                onStop: this.onSolverStop});
+
         return (
             React.createElement("div", {className: "bs fill"}, 
-  React.createElement(rb.TabbedArea, {defaultActiveKey: 1}, 
-    React.createElement(rb.TabPane, {eventKey: 1, tab: "Constraints"}, constraintPanel), 
-            React.createElement(rb.TabPane, {eventKey: 2, tab: "Symbolics"}, symbolicPanel), 
-    React.createElement(rb.TabPane, {eventKey: 3, tab: "Solver"}, solverPanel)
-            )
-        ));
+                React.createElement(rb.TabbedArea, {defaultActiveKey: 1}, 
+                    React.createElement(rb.TabPane, {eventKey: 1, tab: "Constraints"}, constraintPanel), 
+                    React.createElement(rb.TabPane, {eventKey: 2, tab: "Symbolics"}, symbolicPanel), 
+                    React.createElement(rb.TabPane, {eventKey: 3, tab: "Solver"}, solverPanel)
+                )
+            ));
   }
 });
 
