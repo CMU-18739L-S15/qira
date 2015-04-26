@@ -250,6 +250,7 @@ qira.sassSolverPanel = React.createClass({
     componentDidMount: function() {
         var newState = {stream: io.connect(STREAM_URL), status: "waiting"};
         this.setState(newState);
+
         newState.stream.on("sassstatus", function(sassStatus, results) {
             var newState = React.addons.update(this.state, {
                 status: {$set: sassStatus},
@@ -272,7 +273,7 @@ qira.sassSolverPanel = React.createClass({
         return <div className="bs">
                 <rb.Panel header={this.header()}>
                     <rb.Col xs={3}>
-                        <rb.Input type='text' className="ignore" label='Starting clnum'
+                        <rb.Input type='number' className="ignore" label='Starting clnum'
                                   onChange={this.props.onClnumChange} value={this.props.data.options.clnum} placeholder=''/>
                     </rb.Col>
                     <rb.Col xs={9}>
@@ -366,7 +367,7 @@ qira.sassApp = React.createClass({
         var constraints = groupByType(this.state.constraints);
 
         sassState.constraints.registers = _.map(constraints.register, function(reg) {
-            return {name: reg.target, value: reg.value};
+            return {name: reg.target, value: parseInt(reg.value)};
         });
 
         sassState.constraints.memory = _.map(constraints.memory, function(mem) {

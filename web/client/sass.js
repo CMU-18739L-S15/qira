@@ -250,6 +250,7 @@ qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
     componentDidMount: function() {
         var newState = {stream: io.connect(STREAM_URL), status: "waiting"};
         this.setState(newState);
+
         newState.stream.on("sassstatus", function(sassStatus, results) {
             var newState = React.addons.update(this.state, {
                 status: {$set: sassStatus},
@@ -272,7 +273,7 @@ qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
         return React.createElement("div", {className: "bs"}, 
                 React.createElement(rb.Panel, {header: this.header()}, 
                     React.createElement(rb.Col, {xs: 3}, 
-                        React.createElement(rb.Input, {type: "text", className: "ignore", label: "Starting clnum", 
+                        React.createElement(rb.Input, {type: "number", className: "ignore", label: "Starting clnum", 
                                   onChange: this.props.onClnumChange, value: this.props.data.options.clnum, placeholder: ""})
                     ), 
                     React.createElement(rb.Col, {xs: 9}, 
@@ -366,7 +367,7 @@ qira.sassApp = React.createClass({displayName: "sassApp",
         var constraints = groupByType(this.state.constraints);
 
         sassState.constraints.registers = _.map(constraints.register, function(reg) {
-            return {name: reg.target, value: reg.value};
+            return {name: reg.target, value: parseInt(reg.value)};
         });
 
         sassState.constraints.memory = _.map(constraints.memory, function(mem) {
