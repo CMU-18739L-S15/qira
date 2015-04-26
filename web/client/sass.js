@@ -216,7 +216,7 @@ qira.sassSymbolicPanel = React.createClass({displayName: "sassSymbolicPanel",
 
 qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
     getInitialState: function() {
-        return {stream: undefined, status: "waiting"};
+        return {stream: undefined, status: "waiting", results: undefined};
     },
     header: function () {
         var modal = React.createElement(qira.sassAddSymbolicModal, {container: this, onAdd: this.props.onAdd});
@@ -230,14 +230,24 @@ qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
                 ));
     },
     componentDidMount: function() {
-        this.setState({stream: io.connect(STREAM_URL), status: "stopped"});
+        var newState = {stream: io.connect(STREAM_URL), status: "waiting"};
+        this.setState(newState);
+        newState.stream.on("sassstatus", function(sassStatus, results) {
+            var newState = React.addons.update(this.state, {
+                status: {$set: sassStatus},
+                results: {$set: results}
+            });
+            this.setState(newState);
+        }.bind(this));
     },
     makeDisplay: function() {
-        var solverStatus = this.props.data.status;
+        var solverStatus = this.state.status;
         if(solverStatus === "waiting") {
             return React.createElement("h2", null, "Waiting to begin.");
         } else if(solverStatus === "running") {
             return React.createElement("h2", null, "Solving... ", React.createElement("i", {className: "fa fa-plus fa-spin"}));
+        } else if(solverStatus === "results") {
+            return React.createElement("h2", null, this.state.results)
         }
     },
     render: function() {
@@ -264,7 +274,6 @@ qira.sassApp = React.createClass({displayName: "sassApp",
                           {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee"}],
             //We should eventually add threading, assists, etc. here
             options: {clnum: 0},
-            status: "waiting"
         };
     },
     handleConstraintDelete: function(constraint) {
@@ -309,12 +318,41 @@ qira.sassApp = React.createClass({displayName: "sassApp",
         var newSymbolics = this.state.symbolics.concat(symbolic);
         this.setState({symbolics: newSymbolics});
     },
+    formatSolverState: function() {
+        console.log(this.state);
+        var sassState = {
+            clnum: this.state.options.clnum,
+            constraints: {
+                registers: {},
+                memory: {}
+            }
+        };
+
+        var groupByType = function(data) {
+            return _.groupBy(data, function(e) {
+                return e.type;
+            });
+        };
+
+        var symbolics = groupByType(this.state.symbolics);
+        console.log(symbolics);
+
+        sassState.regs = _.map(symbolics.register, function(reg) { return reg.target });
+        sassState.mem = _.map(symbolics.memory, function(mem) { return [parseInt(mem.target), mem.size]; });
+
+        var constraints = groupByType(this.state.constraints);
+        console.log(constraints);
+        sassState.constraints = {registers: {}, memory: {}};
+        
+
+        //We do not support this in the ui at this time.
+        sassState.assist = {};
+
+        console.log(sassState);
+    },
     onSolverStart: function(stream) {
         console.log("starting solver");
-        var newState = React.addons.update(this.state, {
-            status: {$set: "running"}
-        });
-        this.setState(newState);
+        stream.emit("startsolver", Session.get("forknum"), 200);
     },
     onSolverStop: function(stream) {
         console.log("stopping solver");
@@ -333,7 +371,6 @@ qira.sassApp = React.createClass({displayName: "sassApp",
                 onDelete: this.handleSymbolicDelete, 
                 onAdd: this.onSymbolicAdd, 
         symbolics: this.state.symbolics});
-        
         var solverPanel = React.createElement(qira.sassSolverPanel, {data: this.state, onClnumChange: this.onClnumChange, 
                                                 onStart: this.onSolverStart, onStop: this.onSolverStop});
         return (
