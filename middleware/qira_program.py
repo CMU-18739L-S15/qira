@@ -390,7 +390,6 @@ class Trace:
         self.dmap = qira_analysis.get_hacked_depth_map(self.flow, self.program)
         qira_analysis.analyse_calls(self.program, self.flow)
 
-
         # hacky pin offset problem fix
         hpo = len(self.dmap)-(maxclnum-minclnum)
         if hpo == 2:
