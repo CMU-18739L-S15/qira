@@ -480,7 +480,7 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
   # add symbolic memory
   initial_mem = {}
   for entry in symbolic['memory']:
-    address, size = entry['address'], entry['size']
+    address, size = entry['address'], int(entry['size'])
     for addr in range(address, address+size):
       name = "mem_{}".format(hex(addr))
       b = z3.BitVec(name, 8)
@@ -550,7 +550,7 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
           result['registers'].append({"name": register, "value": value})
 
         for entry in symbolic['memory']:
-          for address in range(entry['address'], entry['address']+entry['size']):
+          for address in range(entry['address'], entry['address']+int(entry['size'])):
             bvname = "mem_{}".format(hex(address))
             bv = bitvecs[bvname]
             value = None
