@@ -82,7 +82,7 @@ class State:
     return str(self.variables)
 
   def get_copy(self):
-    return State(copy(self.variables), self.memory.get_mem, copy(dict(self.memory)))
+    return State(copy(self.variables), self.memory.fetch_mem, copy(dict(self.memory)))
 
 class VariableException(Exception):
   pass
@@ -96,7 +96,7 @@ class ConcolicExecutor(adt.Visitor):
   Takes an initial state, which may cotain both concrete and symbolic values
   Also takes the name of the PC register, which is used for taking branches
   """
-  def __init__(self, state, pc, constraints=[]):
+  def __init__(self, state, pc, constraints=copy([])):
     self.state = state
     self.pc = pc
     self.constraints = constraints
@@ -577,10 +577,13 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
         try:
           executor.run_on_all_forks(bil_instrs)
         except VariableException as e:
+          raise e
+          """
           if e.args[0] == "GS_BASE":
             pass # this happens on stack canary checks
           else:
             raise e
+          """
       except Exception as e:
         print "Error during symbolic execution. Switching fork."
         executor = executors.pop(randint(0, len(executors)-1))
