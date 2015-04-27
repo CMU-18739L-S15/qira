@@ -450,6 +450,8 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
   Runs the concolic executor from a starting clnum, attempting to satisfy the contraints list.
   Uses concrete values for everything but the specified registers and memory addresses.
   """
+
+  # TODO: Should not assume this to be the first fork.
   trace = program.traces[0]
   registers = program.tregs[0]
   regsize = 8 * program.tregs[1]

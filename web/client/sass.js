@@ -2,12 +2,20 @@ window.qira = window.qira || {};
 var qira = window.qira;
 var rb = window.ReactBootstrap;
 
+qira.toAddress = function(i) {
+    return "0x"+ i.toString(16);
+}
+
 qira.formatAddress = function(address, offset) {
     var pmaps = Session.get("pmaps");
 
+    if(typeof(address) === "number") {
+        address = qira.toAddress(address)
+    }
+
     if(offset !== undefined) {
         var addressInt = parseInt(address) + parseInt(offset);
-        address = "0x" + addressInt.toString(16);
+        address = qira.toAddress(addressInt)
     }
 
     var mapAddresses = _.keys(pmaps);
@@ -266,8 +274,31 @@ qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
         } else if(solverStatus === "running") {
             return React.createElement("h2", null, "Solving... ", React.createElement("i", {className: "fa fa-spinner fa-spin"}));
         } else if(solverStatus === "results") {
-            return React.createElement("h2", null, this.state.results);
+            var sat = this.state.results[0];
+            if(!sat) {
+                return React.createElement("h2", null, "Could not find a satisfying assignment.");
+            } else {
+                return this.displayResults();
+            }
         }
+    },
+    displayResults: function() {
+        var assignment = this.state.results[1];
+
+        var friendlyValue = function(value) {
+            if(value === null) return "Any";
+            return value;
+        };
+
+        var symbolicRegisters = assignment.registers.map(function(reg) {
+            console.log(reg);
+            return React.createElement(rb.ListGroupItem, null, React.createElement(rb.Label, {bsStyle: "info"}, "REG"), " ", reg.name, " ", friendlyValue(reg.value));
+        });
+
+        var memoryRegisters = assignment.memory.map(function(mem) {
+            return React.createElement(rb.ListGroupItem, null, React.createElement(rb.Label, {bsStyle: "primary"}, "MEM"), " ", qira.formatAddress(mem.address), " ", friendlyValue(mem.value));
+        });
+        return React.createElement("div", null, symbolicRegisters, memoryRegisters);
     },
     render: function() {
         return React.createElement("div", {className: "bs"}, 
@@ -287,11 +318,11 @@ qira.sassSolverPanel = React.createClass({displayName: "sassSolverPanel",
 qira.sassApp = React.createClass({displayName: "sassApp",
     getInitialState: function() {
         return {
-            symbolics: [{name: "testa", type: "register", target: "RAX", size: 0},
-                       {name: "testb", type: "memory", target: "0x40007ffea0", size: 16}],
-            constraints: [{name: "test1", type: "register", target: "RIP", value: "0x1337beef", size: 4},
-                          {name: "test2", type: "memory", target: "0x4005cc", value: "0xcoffee", size: 4},
-                          {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee13371337", size:8}],
+            //symbolics: [{name: "testa", type: "register", target: "EAX", size: 4}],
+            //constraints: [{name: "test1", type: "register", target: "RIP", value: "0x1337beef", size: 4}],
+
+            symbolics: [],
+            constraints: [],
             //We should eventually add threading, assists, etc. here
             options: {clnum: 0},
         };
@@ -343,11 +374,17 @@ qira.sassApp = React.createClass({displayName: "sassApp",
             start: this.state.options.clnum,
             symbolic: {
                 registers: [],
-                memory: {}
+                memory: [],
             },
             constraints: {
-                registers: {},
-                memory: {}
+                registers: [],
+                memory: [],
+            },
+            assistance: {
+                halt_constraints: {
+                    registers: [],
+                    memory: []
+                }
             }
         };
 
@@ -374,9 +411,7 @@ qira.sassApp = React.createClass({displayName: "sassApp",
             return {address: parseInt(mem.target), value: parseInt(mem.value), size: mem.size};
         });
 
-        //We do not support this in the ui at this time.
-        sassState.assist = {};
-
+        //We do not support "assistance" in the ui at this time.
         return sassState;
     },
     onSolverStart: function(stream) {

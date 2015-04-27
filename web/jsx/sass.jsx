@@ -2,12 +2,20 @@ window.qira = window.qira || {};
 var qira = window.qira;
 var rb = window.ReactBootstrap;
 
+qira.toAddress = function(i) {
+    return "0x"+ i.toString(16);
+}
+
 qira.formatAddress = function(address, offset) {
     var pmaps = Session.get("pmaps");
 
+    if(typeof(address) === "number") {
+        address = qira.toAddress(address)
+    }
+
     if(offset !== undefined) {
         var addressInt = parseInt(address) + parseInt(offset);
-        address = "0x" + addressInt.toString(16);
+        address = qira.toAddress(addressInt)
     }
 
     var mapAddresses = _.keys(pmaps);
@@ -266,8 +274,31 @@ qira.sassSolverPanel = React.createClass({
         } else if(solverStatus === "running") {
             return <h2>Solving... <i className="fa fa-spinner fa-spin"></i></h2>;
         } else if(solverStatus === "results") {
-            return <h2>{this.state.results}</h2>;
+            var sat = this.state.results[0];
+            if(!sat) {
+                return <h2>Could not find a satisfying assignment.</h2>;
+            } else {
+                return this.displayResults();
+            }
         }
+    },
+    displayResults: function() {
+        var assignment = this.state.results[1];
+
+        var friendlyValue = function(value) {
+            if(value === null) return "Any";
+            return value;
+        };
+
+        var symbolicRegisters = assignment.registers.map(function(reg) {
+            console.log(reg);
+            return <rb.ListGroupItem><rb.Label bsStyle="info">REG</rb.Label> {reg.name} {friendlyValue(reg.value)}</rb.ListGroupItem>;
+        });
+
+        var memoryRegisters = assignment.memory.map(function(mem) {
+            return <rb.ListGroupItem><rb.Label bsStyle="primary">MEM</rb.Label> {qira.formatAddress(mem.address)} {friendlyValue(mem.value)}</rb.ListGroupItem>;
+        });
+        return <div>{symbolicRegisters}{memoryRegisters}</div>;
     },
     render: function() {
         return <div className="bs">
@@ -287,11 +318,11 @@ qira.sassSolverPanel = React.createClass({
 qira.sassApp = React.createClass({
     getInitialState: function() {
         return {
-            symbolics: [{name: "testa", type: "register", target: "RAX", size: 0},
-                       {name: "testb", type: "memory", target: "0x40007ffea0", size: 16}],
-            constraints: [{name: "test1", type: "register", target: "RIP", value: "0x1337beef", size: 4},
-                          {name: "test2", type: "memory", target: "0x4005cc", value: "0xcoffee", size: 4},
-                          {name: "test3", type: "memory", target: "0x40007ffea0", value: "0xcoffee13371337", size:8}],
+            //symbolics: [{name: "testa", type: "register", target: "EAX", size: 4}],
+            //constraints: [{name: "test1", type: "register", target: "RIP", value: "0x1337beef", size: 4}],
+
+            symbolics: [],
+            constraints: [],
             //We should eventually add threading, assists, etc. here
             options: {clnum: 0},
         };
@@ -343,11 +374,17 @@ qira.sassApp = React.createClass({
             start: this.state.options.clnum,
             symbolic: {
                 registers: [],
-                memory: {}
+                memory: [],
             },
             constraints: {
-                registers: {},
-                memory: {}
+                registers: [],
+                memory: [],
+            },
+            assistance: {
+                halt_constraints: {
+                    registers: [],
+                    memory: []
+                }
             }
         };
 
@@ -374,9 +411,7 @@ qira.sassApp = React.createClass({
             return {address: parseInt(mem.target), value: parseInt(mem.value), size: mem.size};
         });
 
-        //We do not support this in the ui at this time.
-        sassState.assist = {};
-
+        //We do not support "assistance" in the ui at this time.
         return sassState;
     },
     onSolverStart: function(stream) {
