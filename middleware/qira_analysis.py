@@ -22,7 +22,7 @@ class SASS(threading.Thread):
 
   def run(self):
     self.stream.emit("sassstatus", "running", namespace="/qira")
-    results = satisfy_constraints(self.program, self.data['start'],
+    results = satisfy_constraints(self.program, int(self.data['start']),
                                   self.data['symbolic'], self.data["constraints"], self.data["assistance"])
     print(results)
     self.stream.emit("sassstatus", "results", results, namespace="/qira")

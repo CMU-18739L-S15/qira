@@ -519,7 +519,9 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
 
       # add user contraints on registers
       for entry in constraints['registers']:
-        s.add(executor.state[entry['name']] == entry['value'])
+        #can't find name because it's unicode; this is a bit hacky
+        name = entry['name'].encode('ascii','ignore')
+        s.add(executor.state[name] == entry['value'])
 
       # add user constraints on memory
       for entry in constraints['memory']:
