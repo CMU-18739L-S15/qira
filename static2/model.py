@@ -364,6 +364,7 @@ class Block:
   def __init__(self, start):
     self.__start__ = start
     self.addresses = set([start])
+    self.successors = set()
 
   def __repr__(self):
     return hex(self.start())+"-"+hex(self.end())
