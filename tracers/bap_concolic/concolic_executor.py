@@ -473,16 +473,17 @@ def color_graph(static, dst):
   function = static[dst]['function']
   generate_successors(static, function)
   for block in function.blocks:
-    block.colored = dst in block.address
+    block.colored = dst in block.addresses
   while True:
     changed = False
     for block in function.blocks:
       for succ in block.successors:
         if succ.colored and not block.colored:
+          print "just colored block at 0x{:x}".format(block.start())
           block.colored = True
           changed = True
-          continue
-    if not changed:
+          break #should break out of inner loop only
+    if not changed: #fixed point
       break
 
 def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance):
