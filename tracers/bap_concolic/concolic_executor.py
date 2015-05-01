@@ -10,9 +10,6 @@ from random import randint
 import collections
 import z3
 
-def symbolic_conditional(cond, true=z3.BitVecVal(1,8), false=z3.BitVecVal(0, 8)):
-  return z3.If(cond, true, false)
-
 class Memory(dict):
   def __init__(self, fetch_mem, initial=None):
     self.fetch_mem = fetch_mem
@@ -89,6 +86,9 @@ class VariableException(Exception):
 
 class MemoryException(Exception):
   pass
+
+def symbolic_conditional(cond, true=z3.BitVecVal(1,8), false=z3.BitVecVal(0, 8)):
+  return z3.If(cond, true, false)
 
 class ConcolicExecutor(adt.Visitor):
   """
@@ -199,19 +199,41 @@ class ConcolicExecutor(adt.Visitor):
   def visit_If(self, op):
     cond = self.run(op.cond)
     if isinstance(cond, SymbolicBitVector):
-      # always take the right branch in cases of Unkown or CPU Exception
+      # see which branches are possible
+      tSAT, fSAT = True, True
+
+      # always take the right branch in cases of Unknown or CPU Exception
       # TODO: Add more cases here. We should prevent forks as much as possible
       if isinstance(op.true, bil.CpuExn) or isinstance(op.true, bil.Unknown):
-        self.constraints.append(cond == 0)
-        self.run(op.false)
-      elif isinstance(op.false, bil.CpuExn) or isinstance(op.false, bil.Unknown):
+        tSAT = False
+      if isinstance(op.false, bil.CpuExn) or isinstance(op.false, bil.Unknown):
+        fSAT = False
+
+      # check satisfiability of path predicates
+      s = z3.Solver()
+      s.add(self.constraints+[cond==1])
+      if s.check().r != 1:
+        tSAT = False
+
+      s = z3.Solver()
+      s.add(self.constraints+[cond==0])
+      if s.check().r != 1:
+        fSAT = False
+
+      # decide which branches to take
+      if tSAT and not fSAT:
         self.constraints.append(cond == 1)
         self.run(op.true)
+      elif fSAT and not tSAT:
+        self.constraints.append(cond == 0)
+        self.run(op.false)
+      elif not fSAT and not tSAT:
+        raise Exception("Neither path is possible. Halt here.")
       else:
-        # If we can't predict the right branch, fork and take both
+        # If we can't eliminate any branches, fork and take both
         # Note: the order below matters to maintain forks correctly
         # TODO: refactor forking
-        if randint(0,1) == 0:
+        if randint(0,1) == 0: # randomly select a path to take first
           condval, take, other = 1, op.true, op.false
         else:
           condval, take, other = 0, op.false, op.true
@@ -517,6 +539,10 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
       # let's try to solve
       s = z3.Solver()
 
+      # add constraints accumulated from this execution path
+      for constraint in executor.constraints:
+        s.add(constraint)
+
       # add user contraints on registers
       for entry in constraints['registers']:
         #can't find name because it's unicode; this is a bit hacky
@@ -527,9 +553,6 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
       for entry in constraints['memory']:
         s.add(executor.state.get_mem(entry['address'], entry['size']) == entry['value'])
 
-      # add constraints accumulated from this execution path
-      for constraint in executor.constraints:
-        s.add(constraint)
 
       # Try to solve
       if s.check().r == 1:
