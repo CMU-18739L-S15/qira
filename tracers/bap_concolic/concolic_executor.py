@@ -467,6 +467,49 @@ def validate_bil(program, flow):
 
   return (errors, warnings)
 
+def find_block(blocks, address):
+  for block in blocks:
+    if address in block.addresses:
+      return block
+  return None
+
+#this should probably be in the static code
+#O(n), where n is number of vertices
+def generate_successors(static, function):
+  "for each block in the given function, add successor edges"
+  for block in function.blocks:
+    end_addr = block.end()
+    end_instr = static[end_addr]['instruction']
+    for (dst, _desttype) in end_instr.dests():
+      succ_block = find_block(function.blocks, dst)
+      if succ_block is not None:
+        block.successors.add(succ_block)
+
+#O(n^2), (number of vertices * max depth, upper bounded by n*n)
+#in each round, color a node if any successor is colored
+#this will terminate after max depth rounds, as this is a DAG
+def color_graph(static, dst, debug=False):
+  #TODO: why is program.static[dst]['block'] sometimes
+  #None even if it's in a block according to this search?
+  function = static[dst]['function']
+  generate_successors(static, function)
+  for block in function.blocks:
+    block.colored = dst in block.addresses
+    if debug:
+      print "initialized block 0x{:x} with {}".format(block.start(), block.colored)
+  while True:
+    changed = False
+    for block in function.blocks:
+      for succ in block.successors:
+        if succ.colored and not block.colored:
+          if debug:
+            print "analysis colored 0x{:x}".format(block.start())
+          block.colored = True
+          changed = True
+          break #should break out of inner loop only
+    if not changed: #fixed point
+      break
+
 def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance):
   """
   Runs the concolic executor from a starting clnum, attempting to satisfy the contraints list.
@@ -479,8 +522,29 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
   regsize = 8 * program.tregs[1]
   PC = registers[-1]
 
+  print constraints
+
   initial_mem_get = partial(trace.fetch_raw_memory, start_clnum)
   initial_regs = dict(zip(registers, map(lambda x: ConcreteBitVector(regsize, x), trace.db.fetch_registers(start_clnum))))
+
+  dst, dst_function = None, None
+  for constraint in constraints[u"registers"]:
+    if constraint[u'name'] == PC:
+      dst = constraint[u'value']
+      dst_function = program.static[dst]['function'].start
+      break
+
+  print dst_function
+
+  src = initial_regs[PC].value
+  print src
+  print program.static[src]['function']
+  src_function = program.static[src]['function'].start
+
+  if dst is not None and src_function == dst_function:
+    print "solving inside the same function from 0x{:x} to 0x{:x}!".format(src, dst)
+    print "We now only traverse paths that can reach the goal state."
+    color_graph(program.static, dst)
 
   # store the z3 bitvecs that we make
   bitvecs = {}
@@ -518,6 +582,16 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
     # grab the initial executor
     executor = executors.pop(0)
     while True:
+      #use improved path selection if start and end
+      #locations are in the same function
+      current_pc = int(executor.state[PC])
+      current_block = program.static[current_pc]['block']
+      if hasattr(current_block, 'colored') and not current_block.colored:
+        print "Attempting to execute an uncolored function. Switching fork."
+        #this shows up a few times here; it should be refactored
+        executor = executors.pop(randint(0, len(executors)-1))
+        continue
+
       # use the assistance
       for entry in assistance['halt_constraints']['registers']:
         name, value = entry['name'], entry['value']
