@@ -474,12 +474,13 @@ def color_graph(static, dst):
   generate_successors(static, function)
   for block in function.blocks:
     block.colored = dst in block.addresses
+    print "initialized block 0x{:x} with {}".format(block.start(), block.colored)
   while True:
     changed = False
     for block in function.blocks:
       for succ in block.successors:
         if succ.colored and not block.colored:
-          print "just colored block at 0x{:x}".format(block.start())
+          print "analysis colored 0x{:x}".format(block.start())
           block.colored = True
           changed = True
           break #should break out of inner loop only
@@ -514,13 +515,12 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
 
   src = initial_regs[PC].value
   print src
+  print program.static[src]['function']
   src_function = program.static[src]['function'].start
 
-  colored = False
   if dst is not None and src_function == dst_function:
     print "solving inside the same function from 0x{:x} to 0x{:x}!".format(src, dst)
-    color_graph(program.static, src, dst)
-    colored = True
+    color_graph(program.static, dst)
 
   # store the z3 bitvecs that we make
   bitvecs = {}
@@ -558,6 +558,19 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
     # grab the initial executor
     executor = executors.pop(0)
     while True:
+      #print "executing PC 0x{:x}".format(int(executor.state[PC]))
+      #use improved path selection if start and end
+      #locations are in the same function
+      current_pc = int(executor.state[PC])
+      current_block = program.static[current_pc]['block']
+      #block = find_blocks(current_fn.blocks, current_pc)
+      #print "current_block",current_block
+      if hasattr(current_block, 'colored') and not current_block.colored:
+        print "Attempting to execute an uncolored function. Switching fork."
+        #this shows up a few times here; it should be refactored
+        executor = executors.pop(randint(0, len(executors)-1))
+        continue
+
       # use the assistance
       for entry in assistance['halt_constraints']['registers']:
         name, value = entry['name'], entry['value']
