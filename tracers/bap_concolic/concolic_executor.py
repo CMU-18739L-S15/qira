@@ -509,15 +509,13 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
   for constraint in constraints[u"registers"]:
     if constraint[u'name'] == PC:
       dst = constraint[u'value']
-      dst_function = program.static[dst]['function'].start
+      if program.static[dst]['function'] is not None:
+          dst_function = program.static[dst]['function'].start
       break
 
-  print dst_function
-
   src = initial_regs[PC].value
-  print src
-  print program.static[src]['function']
-  src_function = program.static[src]['function'].start
+  if program.static[src]['function'] is not None:
+      src_function = program.static[src]['function'].start
 
   if dst is not None and src_function == dst_function:
     print "solving inside the same function from 0x{:x} to 0x{:x}!".format(src, dst)
