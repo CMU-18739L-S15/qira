@@ -585,7 +585,7 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
       current_pc = int(executor.state[PC])
       current_block = program.static[current_pc]['block']
       if hasattr(current_block, 'colored') and not current_block.colored:
-        print "Attempting to execute an uncolored function. Switching fork."
+        print "Attempting to execute an uncolored block. Switching fork."
         #this shows up a few times here; it should be refactored
         executor = executors.pop(randint(0, len(executors)-1))
         continue
