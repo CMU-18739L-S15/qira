@@ -535,11 +535,11 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
           dst_function = program.static[dst]['function'].start
       break
 
-  src = initial_regs[PC].value
+  src, src_function = initial_regs[PC].value, None
   if program.static[src]['function'] is not None:
       src_function = program.static[src]['function'].start
 
-  if dst is not None and src_function == dst_function:
+  if dst is not None and src is not None and src_function == dst_function:
     print "solving inside the same function from 0x{:x} to 0x{:x}!".format(src, dst)
     print "We now only traverse paths that can reach the goal state."
     color_graph(program.static, dst)
