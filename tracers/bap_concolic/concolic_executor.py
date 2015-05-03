@@ -667,7 +667,6 @@ def satisfy_constraints(program, start_clnum, symbolic, constraints, assistance)
 
       bil_instrs = instr.insn.bil
 
-      old_pc = executor.state[PC]
       try:
         try:
           executor.run_on_all_forks(bil_instrs)
